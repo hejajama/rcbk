@@ -101,7 +101,12 @@ void Solver::Solve(REAL maxy)
                 }
             }
         }
-    } while (y < maxy);
+    } while (true or y < maxy);
+
+    gsl_odeiv_evolve_free (e);
+    gsl_odeiv_control_free (c);
+    gsl_odeiv_step_free (s);
+
 
     cout << "#r  amplitude\n";
     for (int i=0; i<N->RPoints(); i++)
@@ -195,6 +200,7 @@ REAL Solver::RapidityDerivative(REAL y,
     status=gsl_integration_qag(&fun, minr,
             maxr, 0, RINTACCURACY, RINTPOINTS,
             GSL_INTEG_GAUSS51, workspace, &result, &abserr);
+    gsl_integration_workspace_free(workspace);
 
     if (status)
     {
@@ -235,6 +241,7 @@ REAL Inthelperf_rint(REAL lnr, void* p)
     status = gsl_integration_qag(&fun, mintheta,
             maxtheta, 0, THETAINTACCURACY, THETAINTPOINTS,
             GSL_INTEG_GAUSS51, workspace, &result, &abserr);
+    gsl_integration_workspace_free(workspace);
     if (status and std::abs(result)>1e-6)
     {
         cerr << "Thetaint failed at " << LINEINFO <<": r=" << std::exp(lnr) 
@@ -374,6 +381,9 @@ REAL Solver::InterpolateN(REAL lnr, REAL lnb, REAL thetab, const REAL* data)
             cerr << "Interpolation result is " << result << ", lnr = "
             << lnr << ". " << LINEINFO << endl;
         }
+
+        delete[] tmpnarray;
+        delete[] tmplnrarray;
 
         return result;
         
