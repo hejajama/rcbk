@@ -71,6 +71,20 @@ REAL Alpha_s(REAL Qsqr, REAL scaling)
     return alpha;
 }
 
+/*
+ * r dependent strong coupling constant
+ * Ref. e.g. 0902.1112, regularization is set in config.hpp
+ */
+REAL Alpha_s_r(REAL rsqr, REAL scaling)
+{
+    if (4.0*scaling/rsqr < LAMBDAQCD2)
+        return MAXALPHA;
+    REAL alpha = 12.0*M_PI/( (33.0-2.0*Nf)*log(4.0*scaling/ (rsqr*LAMBDAQCD2) ) );
+    if (alpha > MAXALPHA)
+        return MAXALPHA;
+    return alpha;
+}
+
 REAL Alphabar_s(REAL Qsqr, REAL scaling)
 {
     return Alpha_s(Qsqr, scaling)*Nc/M_PI;

@@ -49,29 +49,24 @@ void Solver::Solve(REAL maxy)
             for (int thetaind=0; thetaind < N->ThetaPoints(); thetaind++)
             {
                  vec[rind*N->BPoints()*N->ThetaPoints() + bind*N->ThetaPoints()+thetaind]
-                    = N->n[0][rind][bind][thetaind];
-                // A bit ugly to use ln_n directly...
+                    = N->Ntable(0, rind, bind, thetaind);
             }
         }
     }
 
-    cout << "Vecsize is " << vecsize << endl;
-    REAL minr = 0.5*(N->LogRVal(0) + N->LogRVal(1));
-    REAL maxr = 0.5*(N->LogRVal(N->RPoints()-1) + N->LogRVal(N->RPoints()-2));
-    cout << "Integration limits in lnr: " << minr << " - " << maxr
-        << " exp: " << std::exp(minr) << " - " << std::exp(maxr) << endl;
-
     REAL y=0; REAL step = 0.2;  // We have always solved up to y
 
     // Intialize GSL
+    EvolutionHelperR help; help.N=N; help.S=this;
+    gsl_odeiv_system sys = {EvolveR, NULL, vecsize, &help};
+        
     const gsl_odeiv_step_type * T = gsl_odeiv_step_rk2;
 
     gsl_odeiv_step * s    = gsl_odeiv_step_alloc (T, vecsize);
     gsl_odeiv_control * c = gsl_odeiv_control_y_new (0.0, 0.05);    //abserr relerr
     gsl_odeiv_evolve * e  = gsl_odeiv_evolve_alloc (vecsize);
-    EvolutionHelperR help; help.N=N; help.S=this;
-    gsl_odeiv_system sys = {EvolveR, NULL, vecsize, &help};
 
+    
     do
     {
         REAL nexty = y+step;
@@ -88,6 +83,7 @@ void Solver::Solve(REAL maxy)
             cout << "Evolved up to " << y << "/" << nexty << ", h=" << h << endl;
         }
 
+        
         int yind = N->AddRapidity(nexty);
         for (int rind=0; rind<N->RPoints(); rind++)
         {
@@ -101,18 +97,11 @@ void Solver::Solve(REAL maxy)
                 }
             }
         }
-    } while (true or y < maxy);
+    } while (y < maxy);
 
     gsl_odeiv_evolve_free (e);
     gsl_odeiv_control_free (c);
     gsl_odeiv_step_free (s);
-
-
-    cout << "#r  amplitude\n";
-    for (int i=0; i<N->RPoints(); i++)
-    {
-        cout << N->RVal(i) << " " << N->n[N->n.size()-1][i][0][0] << endl;
-    }
 
     
 
@@ -210,8 +199,9 @@ REAL Solver::RapidityDerivative(REAL y,
     }
 
     
-    if (result<0) cerr << "Amplitude seems to decrease at r01 = " << std::exp(lnr01)
-            << ", y=" << y << " result " << result << " " << LINEINFO << endl;
+    if (result<0) cerr << "Amplitude seems to decrease from " << helper.n01
+        << " at r01 = " << std::exp(lnr01)
+        << ", y=" << y << " result " << result << " " << LINEINFO << endl;
 
     return result;
 }
@@ -250,7 +240,6 @@ REAL Inthelperf_rint(REAL lnr, void* p)
     }
 
     result *= std::exp(2.0*lnr);        // Change of variables r->ln r
-    result *= 0.2/(2.0*M_PI);  // Alpha_s*N_c/(2\pi^2)
 
     if (!par->N->ImpactParameter()) result*=2.0;
         // As integration limits are [0,Pi]
@@ -315,13 +304,44 @@ REAL Inthelperf_thetaint(REAL theta, void* p)
  * point 2, theta2 is angle between r01 and r02, also integrated over
  * Rapidity y may be used with modified kernel
  * By default y=b01=tetab=theta=0
+ *
+ * Running coupling is also handled here
  */
 REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL y,
         REAL b01, REAL thetab, REAL theta2)
 {
     if (r12<1e-5 or r02 < 1e-5)
         return 0;
-    return SQR(r01) / ( SQR(r12) * SQR(r02) );
+    REAL result;
+
+    // Ref for different prescriptions: 0704.0612
+    // Convention: r01=r, r02 = r1, r12=r2
+    switch(rc)
+    {
+        case CONSTANT:
+            result = ALPHAS*Nc/(2.0*SQR(M_PI))
+                    * SQR(r01) / ( SQR(r12) * SQR(r02) );
+            break;
+        case PARENT:
+            result = Alpha_s_r(SQR(r01), alphas_scaling)*Nc/(2.0*SQR(M_PI))
+                    * SQR(r01) / ( SQR(r12) * SQR(r02) );
+            break;
+        case BALITSKY:
+            result = Nc/(2.0*SQR(M_PI))*Alpha_s_r(SQR(r01), alphas_scaling)
+            * ( SQR(r01) / ( SQR(r12) * SQR(r02) )
+            + 1.0/SQR(r02)*(Alpha_s_r(SQR(r02), alphas_scaling)
+                        /Alpha_s_r(SQR(r12), alphas_scaling) - 1.0)
+            + 1.0/SQR(r12)*(Alpha_s_r(SQR(r12), alphas_scaling)
+                        /Alpha_s_r(SQR(r02), alphas_scaling) - 1.0)
+            );
+            break;
+        case KW:
+            cerr << "KW RC is not implemented yet!" << endl;
+            result=0;
+            break;
+    }
+    return result;
+        
 }
 
 /*
@@ -388,6 +408,21 @@ REAL Solver::InterpolateN(REAL lnr, REAL lnb, REAL thetab, const REAL* data)
         return result;
         
     }
-
-    
 }
+
+
+void Solver::SetRunningCoupling(RunningCoupling rc_)
+{
+    rc=rc_;
+}
+
+RunningCoupling Solver::GetRunningCoupling()
+{
+    return rc;
+}
+
+void Solver::SetAlphasScaling(REAL scaling)
+{
+    alphas_scaling = scaling;
+}
+

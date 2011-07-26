@@ -16,6 +16,9 @@ public:
     AmplitudeR();
     void Intialize();
 
+    // Return tabulated value of amplitude
+    REAL Ntable(int yind, int rind, int bind=0, int thetaind=0);
+
     // Returns index of the added rapidity
     int AddRapidity(REAL y);
 
@@ -28,6 +31,7 @@ public:
     REAL BVal(int bind);
     REAL LogBVal(int bind);
     REAL ThetaVal(int thetaind);
+    REAL YVal(int yind);
     int RPoints();
     int YPoints();
     int BPoints();

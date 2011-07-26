@@ -8,6 +8,14 @@
 
 #include "amplitude.hpp"
 
+enum RunningCoupling
+{
+    CONSTANT,
+    PARENT,
+    KW,
+    BALITSKY
+};
+
 class Solver
 {
     public:
@@ -20,8 +28,17 @@ class Solver
             REAL b01=0, REAL thetab=0, REAL theta2=0 );
         REAL InterpolateN(REAL lnr, REAL lnb, REAL thetab, const REAL* data);
 
+        void SetRunningCoupling(RunningCoupling rc_);
+        RunningCoupling GetRunningCoupling();
+        void SetAlphasScaling(REAL scaling);
+
     private:
         AmplitudeR* N;
+
+        RunningCoupling rc;
+        REAL alphas_scaling;    
+
+        
 
 };
 

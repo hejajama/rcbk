@@ -114,7 +114,13 @@ void AmplitudeR::AddDataPoint(int yind, int rind, int bind,
     n[yind][rind][bind][thetaind] = value;
 }
 
-
+/*
+ * Return tabulated value of amplitude
+ */
+REAL AmplitudeR::Ntable(int yind, int rind, int bind, int thetaind)
+{
+    return n[yind][rind][bind][thetaind];
+}
 
 int AmplitudeR::RPoints()
 {
@@ -186,6 +192,11 @@ REAL AmplitudeR::LogBVal(int rind)
 REAL AmplitudeR::ThetaVal(int thetaind)
 {
     return thetavals[thetaind];
+}
+
+REAL AmplitudeR::YVal(int yind)
+{
+    return yvals[yind];
 }
 
 std::vector<REAL>& AmplitudeR::LogRVals()
