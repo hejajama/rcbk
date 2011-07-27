@@ -45,8 +45,8 @@ void ErrHandler(const char * reason,
     if (gsl_errno == 14 or gsl_errno == 18 or gsl_errno == 11)
         return;
 
-    // 15 in expint.c:363: gsl_sf_gamma_inc underflows
-    if (gsl_errno == 15 and string(file)=="expint.c" and line==363) return;
+    // 15: underflows
+    if (gsl_errno == 15 ) return;
 
     errors++;
     std::cerr << file << ":"<< line <<": Error " << errors << ": " <<reason
@@ -77,11 +77,11 @@ REAL Alpha_s(REAL Qsqr, REAL scaling)
  */
 REAL Alpha_s_r(REAL rsqr, REAL scaling)
 {
-    if (4.0*scaling/rsqr < LAMBDAQCD2)
+    if (rsqr/scaling > 4.0/(LAMBDAQCD2)
+        *std::exp(-12.0*M_PI/(MAXALPHA*(33.0-2.0*Nf) ) ) )
         return MAXALPHA;
     REAL alpha = 12.0*M_PI/( (33.0-2.0*Nf)*log(4.0*scaling/ (rsqr*LAMBDAQCD2) ) );
-    if (alpha > MAXALPHA)
-        return MAXALPHA;
+    
     return alpha;
 }
 

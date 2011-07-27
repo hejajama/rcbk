@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
         cout << "Usage: " << endl;
         cout << "-maxy y: set max rapidity" << endl;
         cout << "-output file: save output to given file" << endl;
-        cout << "-rc [CONSTANT,PARENT,BALITSKY,KW]: set RC prescription" << endl;
+        cout << "-rc [CONSTANT,PARENT,BALITSKY,KW,MS]: set RC prescription" << endl;
         cout << "-alphas_scaling factor: scale \\lambdaQCD^2 by given factor" << endl;
     }
 
@@ -52,6 +52,8 @@ int main(int argc, char* argv[])
                 rc = BALITSKY;
             else if (string(argv[i+1])=="KW")
                 rc = KW;
+            else if (string(argv[i+1])=="MS")
+                rc = MS;
             else
             {
                 cerr << "Unknown running coupling " << argv[i+1] << endl;
@@ -82,6 +84,7 @@ int main(int argc, char* argv[])
     if (rc==PARENT) infostr << "parent dipole";
     if (rc==BALITSKY) infostr << "Balitsky";
     if (rc==KW) infostr << "KW";
+    if (rc==MS) infostr << "Motyka&Stasto, kin. constraing";
     infostr << endl;
     if (rc!=CONSTANT)
         infostr << "# Scaling factor in alpha_s: " << alphas_scaling << endl;

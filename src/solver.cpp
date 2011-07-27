@@ -10,12 +10,13 @@
 #include <gsl/gsl_spline.h>
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_odeiv.h> // odeiv2 Requires GSL 1.15
+#include <gsl/gsl_sf_bessel.h>
 #include <cmath>
 
 Solver::Solver(AmplitudeR* _N)
 {
     N=_N;
-    deltay=0.15;
+    deltay=0.2;
 }
 
 /*
@@ -61,7 +62,7 @@ void Solver::Solve(REAL maxy)
     EvolutionHelperR help; help.N=N; help.S=this;
     gsl_odeiv_system sys = {EvolveR, NULL, vecsize, &help};
         
-    const gsl_odeiv_step_type * T = gsl_odeiv_step_rk2;
+    const gsl_odeiv_step_type * T = gsl_odeiv_step_rk2; //f45;
 
     gsl_odeiv_step * s    = gsl_odeiv_step_alloc (T, vecsize);
     gsl_odeiv_control * c = gsl_odeiv_control_y_new (0.0, 0.05);    //abserr relerr
@@ -154,8 +155,11 @@ struct Inthelper_rthetaint
     REAL lnr01;   // parent dipole
     REAL lnr02;   // integrated over
     REAL n01;
+    REAL n02;
     REAL thetab; // angle between r01 and b01
     bool bdep;     // take into account impact parameter dependency
+    REAL alphas_r01;
+    REAL alphas_r02;
     const REAL* data;
 };
 REAL Inthelperf_rint(REAL lnr, void* p);
@@ -164,7 +168,7 @@ REAL Inthelperf_thetaint(REAL theta, void* p);
 REAL Solver::RapidityDerivative(REAL y,
             REAL lnr01, REAL lnb01, REAL thetab, const REAL* data)
 {
-    const int RINTPOINTS = 1000;
+    const int RINTPOINTS = 700;
     const REAL RINTACCURACY = 0.01;
     
     // Integrate first over r, then over r, then \theta
@@ -174,6 +178,11 @@ REAL Solver::RapidityDerivative(REAL y,
     helper.thetab = thetab; helper.data=data;
     helper.bdep = N->ImpactParameter();
     helper.n01 = InterpolateN(lnr01, lnb01, thetab, data);
+
+    if (rc!=CONSTANT)
+        helper.alphas_r01 = Alpha_s_r(std::exp(2.0*lnr01), alphas_scaling);
+    else
+        helper.alphas_r01=0;
 
     gsl_function fun;
     fun.params = &helper;
@@ -199,7 +208,7 @@ REAL Solver::RapidityDerivative(REAL y,
     }
 
     
-    if (result<0) cerr << "Amplitude seems to decrease from " << helper.n01
+    if (result<-1e-4) cerr << "Amplitude seems to decrease from " << helper.n01
         << " at r01 = " << std::exp(lnr01)
         << ", y=" << y << " result " << result << " " << LINEINFO << endl;
 
@@ -210,10 +219,11 @@ REAL Inthelperf_rint(REAL lnr, void* p)
 {
     Inthelper_rthetaint* par = (Inthelper_rthetaint*)p;
 
-    const int THETAINTPOINTS = 1000;
+    const int THETAINTPOINTS = 300;
     const REAL THETAINTACCURACY = 0.05;
 
     par->lnr02=lnr;
+    par->n02 = par->Solv->InterpolateN(lnr, 0, 0, par->data);
     gsl_function fun;
     fun.function = Inthelperf_thetaint;
     fun.params = par;
@@ -221,11 +231,16 @@ REAL Inthelperf_rint(REAL lnr, void* p)
     gsl_integration_workspace *workspace 
      = gsl_integration_workspace_alloc(THETAINTPOINTS);
 
-     REAL mintheta = 0.0001;
-     REAL maxtheta = 2.0*M_PI-0.0001;
+    REAL mintheta = 0.0001;
+    REAL maxtheta = 2.0*M_PI-0.0001;
 
-     if (!par->N->ImpactParameter()) maxtheta=M_PI-0.0001;
-     
+    if (!par->N->ImpactParameter()) maxtheta=M_PI-0.0001;
+    if (par->Solv->GetRunningCoupling()!=CONSTANT)
+         par->alphas_r02 = Alpha_s_r(std::exp(2.0*lnr),
+            par->Solv->GetAlphasScaling());
+    else
+        par->alphas_r02=0;
+
 
     int status; REAL result, abserr;
     status = gsl_integration_qag(&fun, mintheta,
@@ -258,13 +273,19 @@ REAL Inthelperf_thetaint(REAL theta, void* p)
         REAL r01 = std::exp(par->lnr01);
         REAL r02 = std::exp(par->lnr02);
         REAL r12sqr = SQR(r01)+SQR(r02)-2.0*r01*r02*std::cos(theta);
-        REAL n02 = par->Solv->InterpolateN(par->lnr02, 0, 0, par->data);
+        REAL alphas_r12=0;
+        if (par->Solv->GetRunningCoupling()!=CONSTANT
+            and par->Solv->GetRunningCoupling() != PARENT)
+                alphas_r12 = Alpha_s_r(r12sqr, par->Solv->GetAlphasScaling());
+        
+        REAL n02 = par->n02;
         REAL n12 = par->Solv->InterpolateN(0.5*std::log(r12sqr), 0, 0, par->data);
         REAL n01 = par->n01;
 
         REAL result = n02 + n12 - n01 - n02*n12;
 
-        result *= par->Solv->Kernel(r01, r02, std::sqrt(r12sqr));
+        result *= par->Solv->Kernel(r01, r02, std::sqrt(r12sqr), par->alphas_r01,
+            par->alphas_r02, alphas_r12, par->y, theta);
 
         return result;
     }
@@ -307,8 +328,9 @@ REAL Inthelperf_thetaint(REAL theta, void* p)
  *
  * Running coupling is also handled here
  */
-REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL y,
-        REAL b01, REAL thetab, REAL theta2)
+REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
+        REAL alphas_r02, REAL alphas_r12, REAL y,
+        REAL theta2, REAL b01, REAL thetab)
 {
     if (r12<1e-5 or r02 < 1e-5)
         return 0;
@@ -316,6 +338,9 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL y,
 
     // Ref for different prescriptions: 0704.0612
     // Convention: r01=r, r02 = r1, r12=r2
+    REAL theta012, cosr1r2, Rsqr, z, zsqrt;
+    REAL costheta2; REAL r02dotr12;
+
     switch(rc)
     {
         case CONSTANT:
@@ -323,32 +348,80 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL y,
                     * SQR(r01) / ( SQR(r12) * SQR(r02) );
             break;
         case PARENT:
-            result = Alpha_s_r(SQR(r01), alphas_scaling)*Nc/(2.0*SQR(M_PI))
+            result = alphas_r01*Nc/(2.0*SQR(M_PI))
                     * SQR(r01) / ( SQR(r12) * SQR(r02) );
             break;
         case BALITSKY:
-            result = Nc/(2.0*SQR(M_PI))*Alpha_s_r(SQR(r01), alphas_scaling)
+            result = Nc/(2.0*SQR(M_PI))*alphas_r01
             * (
             SQR(r01) / ( SQR(r12) * SQR(r02) )
-            + 1.0/SQR(r02)*(Alpha_s_r(SQR(r02), alphas_scaling)
-                        /Alpha_s_r(SQR(r12), alphas_scaling) - 1.0)
-            + 1.0/SQR(r12)*(Alpha_s_r(SQR(r12), alphas_scaling)
-                        /Alpha_s_r(SQR(r02), alphas_scaling) - 1.0)
+            + 1.0/SQR(r02)*(alphas_r02/alphas_r12 - 1.0)
+            + 1.0/SQR(r12)*(alphas_r12/alphas_r02 - 1.0)
             );
-
-         /*   if (std::abs(result -  Alpha_s_r(SQR(r01), alphas_scaling)*Nc/(2.0*SQR(M_PI))
-                    * SQR(r01) / ( SQR(r12) * SQR(r02) ) ) > 0.1)
-                cout << " r01 " << r01 << " r02 " << r02 << " r12 " << r12
-                 << " parent " << Alpha_s_r(SQR(r01), alphas_scaling)*Nc/(2.0*SQR(M_PI))
-                    * SQR(r01) / ( SQR(r12) * SQR(r02) )
-                    << " balitsky " << result << endl; */
-
-
             break;
         case KW:
-            cerr << "KW RC is not implemented yet!" << endl;
-            result=0;
+            if (std::abs(SQR(r02)-SQR(r12)) < 1e-3) return 0;
+
+            costheta2 = std::cos(theta2);
+            r02dotr12 = SQR(r02) - r02*r01*costheta2;
+
+            /* calculate dot product using geometry, slower than vector
+             * calculateion used above
+             if (theta2>M_PI) theta2=2.0*M_PI-theta2;
+
+            theta012 = std::acos(
+                -0.9999*( SQR(r02) - SQR(r01) - SQR(r12) ) / (2.0*r01*r12) );
+
+            cosr1r2 = -std::cos(theta2 + theta012);
+            r02dotr12 = r02*r12*cosr1r2;   // r02 \cdot r12
+            */
+            
+
+            Rsqr = r02*r12*std::pow((r12/r02),
+                (SQR(r02)+SQR(r12))/(SQR(r02)-SQR(r12))
+                    - 2.0*SQR(r02)*SQR(r12)/(r02dotr12*(SQR(r02)-SQR(r12)) )
+                );
+            if (Rsqr<N->MinR()) return 0;
+
+            result = Nc/(2.0*SQR(M_PI)) * (
+                alphas_r02 / SQR(r02)
+                - 2.0*alphas_r02*alphas_r12 / Alpha_s_r(Rsqr, alphas_scaling)
+                 * r02dotr12 / (SQR(r02)*SQR(r12) )
+                + alphas_r12 / SQR(r12)
+                );
+            if (result<-1e-3)
+            cout << "r01 " << r01 << " r02 " << r02 << " r12 " << r12 << " Rsqr " << Rsqr
+                << " bal " << Nc/(2.0*SQR(M_PI))*alphas_r01
+            * (
+            SQR(r01) / ( SQR(r12) * SQR(r02) )
+            + 1.0/SQR(r02)*(alphas_r02/alphas_r12 - 1.0)
+            + 1.0/SQR(r12)*(alphas_r12/alphas_r02 - 1.0)
+            )
+            << " kw " << result << endl;
+
             break;
+        case MS:
+            // Motyka & Staśto, 0901.4949: kinematical constraint, bessel kernel
+            z = std::exp(-y); zsqrt = std::exp(-0.5*y);
+
+            // We need angle between vectors r02 and r12
+            // Cos of that angle can be calculated by simple geometry
+            theta012 = std::acos(
+                -( SQR(r01) - SQR(r02) - SQR(r12) ) / (2.0*r02*r12) );
+            cosr1r2 = -std::cos(theta2 + theta012);
+
+            result = z/SQR(r01) * (
+                  SQR( gsl_sf_bessel_K1(r02/r01*zsqrt) )
+                + SQR( gsl_sf_bessel_K1(r12/r01*zsqrt) )
+                - 2.0*gsl_sf_bessel_K1(r02/r01*zsqrt)
+                  * gsl_sf_bessel_K1(r12/r01*zsqrt)
+                  * r02*r12*cosr1r2 / (r02*r12)
+                );
+
+            // Parent dipole RC
+            result *= Nc/(2.0*SQR(M_PI))*alphas_r01;
+            break;
+            
     }
     return result;
         
@@ -406,7 +479,7 @@ REAL Solver::InterpolateN(REAL lnr, REAL lnb, REAL thetab, const REAL* data)
         interp.Initialize();
         REAL result = interp.Evaluate(lnr);
 
-        if (result < 0 or result>1.1)
+        if (result < -1e-3 or result>1.001)
         {
             cerr << "Interpolation result is " << result << ", lnr = "
             << lnr << ". " << LINEINFO << endl;
@@ -434,6 +507,11 @@ RunningCoupling Solver::GetRunningCoupling()
 void Solver::SetAlphasScaling(REAL scaling)
 {
     alphas_scaling = scaling;
+}
+
+REAL Solver::GetAlphasScaling()
+{
+    return alphas_scaling;
 }
 
 void Solver::SetDeltaY(REAL dy)

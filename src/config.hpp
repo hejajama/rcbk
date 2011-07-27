@@ -20,7 +20,8 @@ typedef double REAL;
 typedef unsigned int uint;
 
 // Physical constants
-const REAL LAMBDAQCD2 = 0.21416*0.21416;   // GeV^2
+//const REAL LAMBDAQCD2 = 0.21416*0.21416;   // GeV^2
+const REAL LAMBDAQCD2 = 0.241*0.241;    // 0902.1112
 const int Nf=3;
 const int Nc=3;
 const REAL ALPHA_e = 1.0/137.035999679; 
