@@ -15,6 +15,7 @@
 Solver::Solver(AmplitudeR* _N)
 {
     N=_N;
+    deltay=0.15;
 }
 
 /*
@@ -54,7 +55,7 @@ void Solver::Solve(REAL maxy)
         }
     }
 
-    REAL y=0; REAL step = 0.2;  // We have always solved up to y
+    REAL y=0; REAL step = deltay;  // We have always solved up to y
 
     // Intialize GSL
     EvolutionHelperR help; help.N=N; help.S=this;
@@ -65,12 +66,11 @@ void Solver::Solve(REAL maxy)
     gsl_odeiv_step * s    = gsl_odeiv_step_alloc (T, vecsize);
     gsl_odeiv_control * c = gsl_odeiv_control_y_new (0.0, 0.05);    //abserr relerr
     gsl_odeiv_evolve * e  = gsl_odeiv_evolve_alloc (vecsize);
-
+    REAL h = step;  // Initial ODE solver step size
     
     do
     {
         REAL nexty = y+step;
-        REAL h = step;  // Initial step size
         while (y<nexty)
         {
             int status = gsl_odeiv_evolve_apply(e, c, s, &sys,
@@ -328,12 +328,22 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL y,
             break;
         case BALITSKY:
             result = Nc/(2.0*SQR(M_PI))*Alpha_s_r(SQR(r01), alphas_scaling)
-            * ( SQR(r01) / ( SQR(r12) * SQR(r02) )
+            * (
+            SQR(r01) / ( SQR(r12) * SQR(r02) )
             + 1.0/SQR(r02)*(Alpha_s_r(SQR(r02), alphas_scaling)
                         /Alpha_s_r(SQR(r12), alphas_scaling) - 1.0)
             + 1.0/SQR(r12)*(Alpha_s_r(SQR(r12), alphas_scaling)
                         /Alpha_s_r(SQR(r02), alphas_scaling) - 1.0)
             );
+
+         /*   if (std::abs(result -  Alpha_s_r(SQR(r01), alphas_scaling)*Nc/(2.0*SQR(M_PI))
+                    * SQR(r01) / ( SQR(r12) * SQR(r02) ) ) > 0.1)
+                cout << " r01 " << r01 << " r02 " << r02 << " r12 " << r12
+                 << " parent " << Alpha_s_r(SQR(r01), alphas_scaling)*Nc/(2.0*SQR(M_PI))
+                    * SQR(r01) / ( SQR(r12) * SQR(r02) )
+                    << " balitsky " << result << endl; */
+
+
             break;
         case KW:
             cerr << "KW RC is not implemented yet!" << endl;
@@ -426,3 +436,7 @@ void Solver::SetAlphasScaling(REAL scaling)
     alphas_scaling = scaling;
 }
 
+void Solver::SetDeltaY(REAL dy)
+{
+    deltay = dy;
+}

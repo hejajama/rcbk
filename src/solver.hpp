@@ -31,12 +31,14 @@ class Solver
         void SetRunningCoupling(RunningCoupling rc_);
         RunningCoupling GetRunningCoupling();
         void SetAlphasScaling(REAL scaling);
+        void SetDeltaY(REAL dy);
 
     private:
         AmplitudeR* N;
 
         RunningCoupling rc;
-        REAL alphas_scaling;    
+        REAL alphas_scaling;
+        REAL deltay;
 
         
 

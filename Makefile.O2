@@ -1,19 +1,22 @@
-CXXFLAGS = `gsl-config --cflags` -O2 -fopenmp -I /linuxfs-home/student/hejajama/lib/include -pedantic #-fopenmp# -I ./libbci-1.1.0/ 
-LDFLAGS = `gsl-config --libs` -lm -L /linuxfs-home/student/hejajama/lib/lib 
+CXXFLAGS = `gsl-config --cflags` -O2 -fopenmp -pedantic #-fopenmp# -I ./libbci-1.1.0/ 
+LDFLAGS = `gsl-config --libs` -lm 
 
 SOURCES = src/main.cpp src/tools.cpp src/amplitude.cpp src/solver.cpp src/interpolation.cpp 
-
+AMPLITUDELIB = amplitudelib/main.cpp amplitudelib/amplitudelib.cpp amplitudelib/datafile.cpp src/interpolation.cpp src/tools.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
+AMPLIUTDELIBO=$(AMPLITUDELIB:.cpp=.o)
 
 all: rbk
 
 rbk: $(OBJECTS) 
 	g++ $(CXXFLAGS) $(LDFLAGS) $(OBJECTS) -o rbk 
+amplitudelib: $(AMPLITUDELIBO)
+	g++ $(CXXFLAGS) $(LDFLAGS) $(AMPLITUDELIBO) -o amplitude
 .cpp.o:
 	 g++ $(CXXFLAGS) $< -c -o $@
 .c.o:
 	gcc $(CXXFLAGS) $< -c -o $@
 
 clean:
-	rm -f $(OBJECTS)
+	rm -f $(OBJECTS) $(AMPLITUDELIBO)
 	rm -f bk	

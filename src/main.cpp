@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
     if (rc==KW) infostr << "KW";
     infostr << endl;
     if (rc!=CONSTANT)
-        infostr << "Scaling factor in alpha_s: " << alphas_scaling << endl;
+        infostr << "# Scaling factor in alpha_s: " << alphas_scaling << endl;
 
     infostr << "# Solving BK equation up to y=" << maxy << endl;
     infostr << "# r limits: " << N.MinR() << " - " << N.MaxR() << " points "
