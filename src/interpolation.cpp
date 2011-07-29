@@ -97,7 +97,8 @@ REAL Interpolator::Evaluate(REAL x)
             if (status)
             {
                 cerr << "Interpolatioin failed at " << LINEINFO << ", error " << gsl_strerror(status)
-                 << " (" << status << "), x=" << x << ", result=" << res << endl;
+                 << " (" << status << "), x=" << x << ", minx=" << xdata[0]
+                 << ", maxx=" << xdata[points-1] << ", result=" << res << endl;
             }
             return res;
             break;
@@ -139,7 +140,22 @@ REAL Interpolator::Derivative(REAL x)
     }
 
     return res;
+}
 
+REAL Interpolator::Derivative2(REAL x)
+{
+    REAL res; int status;
+    switch(method)
+    {
+        case INTERPOLATE_SPLINE:
+            status = gsl_spline_eval_deriv2_e(spline, x, acc, &res);
+            break;
+        case INTERPOLATE_BSPLINE:
+            cerr << "2nd derivative is not implemented for BSPLINE interpolation!"
+            << " " << LINEINFO << endl;
+            break;
+    }
+    return res;
 
 }
 
@@ -157,7 +173,7 @@ void Interpolator::SetMethod(INTERPOLATION_METHOD m)
     method = m;
 }
 
-Interpolator::~Interpolator()
+void Interpolator::Clear()
 {
     switch(method)
     {
@@ -178,4 +194,37 @@ Interpolator::~Interpolator()
     }
 }
 
-    
+Interpolator::~Interpolator()
+{
+    Clear();
+
+}
+
+REAL* Interpolator::GetXData()
+{
+    return xdata;
+}
+REAL* Interpolator::GetYData()
+{
+    return ydata;
+}
+int Interpolator::GetNumOfPoints()
+{
+    return points;
+}
+INTERPOLATION_METHOD Interpolator::GetMethod()
+{
+    return method;
+}
+
+// Copy data from given class and initialize this, as this is
+// the copy constructor
+Interpolator::Interpolator(Interpolator& inter)
+{
+    points=inter.GetNumOfPoints();
+    xdata = inter.GetXData();
+    ydata = inter.GetYData();
+ 
+    method = inter.GetMethod();
+    Initialize();
+}

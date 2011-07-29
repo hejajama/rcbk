@@ -14,8 +14,12 @@ class AmplitudeLib
 {
     public:
         AmplitudeLib(std::string datafile);
+        ~AmplitudeLib();
 
-        REAL N(REAL r, REAL y);
+        // der w.r.t r der times. if sqr, then calculate N^2, not N
+        REAL N(REAL r, REAL y, int der=0, bool sqr=false);
+
+        void InitializeInterpoaltion(REAL y);
     
         int YVals();
         int RPoints();
@@ -27,6 +31,11 @@ class AmplitudeLib
         std::vector< std::vector<REAL> > n;
         std::vector<REAL> yvals;
         std::vector<REAL> lnrvals;
+        Interpolator *interpolator;
+
+        REAL interpolator_y;
+        REAL* tmplnrarray;
+        REAL* tmpnarray;
 
         REAL minr;
         REAL rmultiplier;

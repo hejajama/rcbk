@@ -124,7 +124,8 @@ REAL AmplitudeR::Ntable(int yind, int rind, int bind, int thetaind)
 
 int AmplitudeR::RPoints()
 {
-    return 95;
+    return 155;
+    //return 95;
 }
 
 int AmplitudeR::YPoints()
@@ -146,17 +147,18 @@ int AmplitudeR::ThetaPoints()
 
 REAL AmplitudeR::MinR()
 {
-    return 1e-6;
+    return 1e-5;
+    //return 1e-6;
 }
 
 REAL AmplitudeR::RMultiplier()
 {
-    return 1.2;
+    return 1.1;
 }
 
 REAL AmplitudeR::MaxR()
 {
-    return MinR()*std::pow(RMultiplier(), RPoints());
+    return MinR()*std::pow(RMultiplier(), RPoints()-1);
 }
 
 REAL AmplitudeR::MaxLnR()

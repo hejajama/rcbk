@@ -116,7 +116,19 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
     cout << "Evolving with y=" <<y << endl;
     EvolutionHelperR* par = (EvolutionHelperR*)params;
     //int vecsize = par->N->BPoints()*par->N->RPoints()*par->N->ThetaPoints();
-    #pragma omp parallel for
+
+    // Intialize interpolator (works only if there is no b-dep.)
+    REAL *tmprarray = new REAL[par->N->RPoints()];
+    REAL *tmpyarray = new REAL[par->N->RPoints()];
+    for (int i=0; i<par->N->RPoints(); i++)
+    {
+        tmprarray[i] = par->N->LogRVal(i);
+        tmpyarray[i] = amplitude[i];
+    }
+    Interpolator interp(tmprarray, tmpyarray, par->N->RPoints());
+    interp.Initialize();
+    
+    #pragma omp parallel for firstprivate(interp)
     for (int rind=0; rind < par->N->RPoints(); rind++)
     {
         for (int thetaind=0; thetaind < par->N->ThetaPoints(); thetaind++)
@@ -125,18 +137,36 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
             {
                 int tmpind = rind*par->N->BPoints()*par->N->ThetaPoints()
                     + bind*par->N->ThetaPoints()+thetaind;
+
+                ////THIS IS NOT TRUE IF THERE IS b-DEPENDENCE
+                // optimize: as we know that the amplitude saturates to N=1,
+                // we don't have to evolve it at large r
+                if (rind>10)
+                {
+                    if (amplitude[rind-2]>0.999 and amplitude[rind-1]>0.999)
+                    {
+                        dydt[tmpind]=0;
+                        cout << "Skipping r=" << par->N->RVal(rind) << endl;
+                        continue;
+                    }
+                } 
+                
                 REAL tmplnr = par->N->LogRVal(rind);
                 REAL tmplnb = par->N->LogBVal(bind);
                 REAL tmptheta = par->N->ThetaVal(thetaind);
                 dydt[tmpind] = par->S->RapidityDerivative(y, tmplnr, tmplnb, tmptheta,
-                    amplitude);
-                /*if (tmpind % 1 == 0) cout << "tmpind " << tmpind << " maxrind "
+                    amplitude, &interp);
+                if (tmpind % 1 == 0) cout << "tmpind " << tmpind << " maxrind "
                  << par->N->RPoints()-1 << " r=" << par->N->RVal(tmpind) <<
                  " amplitude " << par->S->InterpolateN(tmplnr, 0, 0, amplitude) <<
-                 " dydt " << dydt[tmpind] << endl;*/
+                 " dydt " << dydt[tmpind] << endl;
             }
         }
     }
+
+    delete[] tmprarray;
+    delete[] tmpyarray;
+    
     return GSL_SUCCESS;
     
 }
@@ -161,12 +191,14 @@ struct Inthelper_rthetaint
     REAL alphas_r01;
     REAL alphas_r02;
     const REAL* data;
+    Interpolator* interp;
 };
 REAL Inthelperf_rint(REAL lnr, void* p);
 REAL Inthelperf_thetaint(REAL theta, void* p);
 
 REAL Solver::RapidityDerivative(REAL y,
-            REAL lnr01, REAL lnb01, REAL thetab, const REAL* data)
+            REAL lnr01, REAL lnb01, REAL thetab, const REAL* data,
+            Interpolator *interp)
 {
     const int RINTPOINTS = 700;
     const REAL RINTACCURACY = 0.01;
@@ -176,8 +208,10 @@ REAL Solver::RapidityDerivative(REAL y,
     helper.N=N; helper.Solv=this;
     helper.y=y; helper.lnb01=lnb01; helper.lnr01=lnr01;
     helper.thetab = thetab; helper.data=data;
+    helper.interp = interp;
     helper.bdep = N->ImpactParameter();
-    helper.n01 = InterpolateN(lnr01, lnb01, thetab, data);
+    //helper.n01 = InterpolateN(lnr01, lnb01, thetab, data);
+    helper.n01 = interp->Evaluate(lnr01);
 
     if (rc!=CONSTANT)
         helper.alphas_r01 = Alpha_s_r(std::exp(2.0*lnr01), alphas_scaling);
@@ -223,7 +257,8 @@ REAL Inthelperf_rint(REAL lnr, void* p)
     const REAL THETAINTACCURACY = 0.05;
 
     par->lnr02=lnr;
-    par->n02 = par->Solv->InterpolateN(lnr, 0, 0, par->data);
+    //par->n02 = par->Solv->InterpolateN(lnr, 0, 0, par->data);
+    par->n02 = par->interp->Evaluate(lnr);
     gsl_function fun;
     fun.function = Inthelperf_thetaint;
     fun.params = par;
@@ -273,13 +308,16 @@ REAL Inthelperf_thetaint(REAL theta, void* p)
         REAL r01 = std::exp(par->lnr01);
         REAL r02 = std::exp(par->lnr02);
         REAL r12sqr = SQR(r01)+SQR(r02)-2.0*r01*r02*std::cos(theta);
+        if (r12sqr < SQR(par->N->MinR())) return 0;
+        if (r12sqr > SQR(par->N->MaxR())) return 0;
         REAL alphas_r12=0;
         if (par->Solv->GetRunningCoupling()!=CONSTANT
             and par->Solv->GetRunningCoupling() != PARENT)
                 alphas_r12 = Alpha_s_r(r12sqr, par->Solv->GetAlphasScaling());
         
         REAL n02 = par->n02;
-        REAL n12 = par->Solv->InterpolateN(0.5*std::log(r12sqr), 0, 0, par->data);
+        //REAL n12 = par->Solv->InterpolateN(0.5*std::log(r12sqr), 0, 0, par->data);
+        REAL n12 = par->interp->Evaluate(0.5*std::log(r12sqr));
         REAL n01 = par->n01;
 
         REAL result = n02 + n12 - n01 - n02*n12;
@@ -404,18 +442,16 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
             // Motyka & Staśto, 0901.4949: kinematical constraint, bessel kernel
             z = std::exp(-y); zsqrt = std::exp(-0.5*y);
 
-            // We need angle between vectors r02 and r12
-            // Cos of that angle can be calculated by simple geometry
-            theta012 = std::acos(
-                -( SQR(r01) - SQR(r02) - SQR(r12) ) / (2.0*r02*r12) );
-            cosr1r2 = -std::cos(theta2 + theta012);
+            // r02 dot r12
+            costheta2 = std::cos(theta2);
+            r02dotr12 = SQR(r02) - r02*r01*costheta2;
 
             result = z/SQR(r01) * (
                   SQR( gsl_sf_bessel_K1(r02/r01*zsqrt) )
                 + SQR( gsl_sf_bessel_K1(r12/r01*zsqrt) )
-                - 2.0*gsl_sf_bessel_K1(r02/r01*zsqrt)
-                  * gsl_sf_bessel_K1(r12/r01*zsqrt)
-                  * r02*r12*cosr1r2 / (r02*r12)
+                -  2.0*gsl_sf_bessel_K1(r02/r01*zsqrt)
+                      *gsl_sf_bessel_K1(r12/r01*zsqrt)
+                  * r02dotr12 / (r02*r12)
                 );
 
             // Parent dipole RC

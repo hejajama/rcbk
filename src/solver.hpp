@@ -7,6 +7,7 @@
 #define _SOLVER_H
 
 #include "amplitude.hpp"
+#include "interpolation.hpp"
 
 enum RunningCoupling
 {
@@ -23,7 +24,8 @@ class Solver
         Solver(AmplitudeR* N_);
         void Solve(REAL maxy);
 
-        REAL RapidityDerivative(REAL y, REAL lnr01, REAL lnb01, REAL thetab, const REAL* data);
+        REAL RapidityDerivative(REAL y, REAL lnr01, REAL lnb01, REAL thetab,
+            const REAL* data, Interpolator* interp);
 
         REAL Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01=0,
             REAL alphas_r02=0, REAL alphas_r12=0,

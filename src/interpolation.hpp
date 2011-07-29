@@ -30,11 +30,19 @@ class Interpolator
 {
     public:
         Interpolator(REAL* x, REAL* y, int p);
+        Interpolator(Interpolator& inter);
         ~Interpolator();
+        void Clear();
         REAL Evaluate(REAL x);
-        REAL Derivative(REAL x);
+        REAL Derivative(REAL x);    // 1st derivative
+        REAL Derivative2(REAL x);   // 2nd derivative
         void SetMethod(INTERPOLATION_METHOD m);
         int Initialize();
+
+        REAL* GetXData();
+        REAL* GetYData();
+        int GetNumOfPoints();
+        INTERPOLATION_METHOD GetMethod();
 
     private:
         INTERPOLATION_METHOD method;
