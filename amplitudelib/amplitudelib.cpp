@@ -11,6 +11,11 @@
 #include <cmath>
 
 
+extern "C"
+{
+    #include "fourier/fourier.h"
+}
+
 /*
  * Calculate amplitude interpolating data
  * Interpolate rapidity linearly and r using spline
@@ -46,7 +51,7 @@ REAL AmplitudeLib::N(REAL r, REAL y, int der, bool sqr)
     /// Use already initialized interpolator
     if (std::abs(y - interpolator_y) < 0.01)
     {
-        REAL result;
+        REAL result=0;
         if (der==0)
             result = interpolator->Evaluate(lnr);
         if (der==1)
@@ -109,7 +114,7 @@ REAL AmplitudeLib::N(REAL r, REAL y, int der, bool sqr)
     
     Interpolator interp(tmpxarray, tmparray, interpo_points);
     interp.Initialize();
-    REAL result;
+    REAL result=0;
     if (der==0)
         result = interp.Evaluate(lnr);
     if (der==1)
@@ -128,6 +133,40 @@ REAL AmplitudeLib::N(REAL r, REAL y, int der, bool sqr)
 
     return result;
 
+}
+
+/*
+ * FT the amplitude to the k-space
+ * N(k) = \int d^2 r/(2\pi r^2) exp(ik.r)N(r)
+ *  = \int dr/r BesselJ[0,k*r] * N(r)
+ * 
+ * Note: for performance reasons it is probably a good idea to
+ * call AmplitudeLib::InitializeInterpolation(y) before this
+ */
+struct N_k_helper
+{
+    REAL y; REAL kt;
+    AmplitudeLib* N;
+};
+REAL N_k_helperf(REAL r, void* p);
+REAL AmplitudeLib::N_k(REAL kt, REAL y)
+{
+    // Some initialisation stuff -
+    set_fpu_state();
+    init_workspace_fourier(1500);   // number of bessel zeroes, max 2000
+    
+    N_k_helper par;
+    par.y=y; par.N=this; par.kt=kt;
+    REAL result = fourier_j0(kt,N_k_helperf,&par);
+    return result;
+}
+
+REAL N_k_helperf(REAL r, void* p)
+{
+    N_k_helper* par = (N_k_helper*) p;
+    if (r < par->N->MinR()) return 0;
+    else if (r > par->N->MaxR()) return 1.0/r;
+    return 1.0/r*par->N->N(r, par->y);
 }
 
 AmplitudeLib::AmplitudeLib(std::string datafile)

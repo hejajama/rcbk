@@ -12,8 +12,8 @@
 #include <sstream>
 #include <fstream>
 #include <iomanip>
-
-const std::string version = "v. 0.1  2011-xx-xx";
+using std::string;
+const string version = "v. 0.1  2011-xx-xx";
 
 int main(int argc, char* argv[])
 {
@@ -22,24 +22,40 @@ int main(int argc, char* argv[])
     AmplitudeLib N(argv[1]);
     REAL y = StrToReal(argv[2]);
     N.InitializeInterpoaltion(y);
-    /*UGD ugd(&N);
-
-    for (REAL k=0.1; k<10; k*=1.1)
-    {
-        cout << k << " " << ugd.Evaluate(k, y) << endl;
-    }
-    return 0;*/
-    
-    
     cout << "# y = " << y << endl;
-    cout << "# r [1/GeV]     Amplitude   \\partial_r   \\partial2 r" << endl;
-    for (REAL r=N.MinR(); r<N.MaxR(); r*=1.1)
+    
+    if (string(argv[3])=="k")
     {
-        cout << r << " " << N.N(r, y) <<  " "
-         << N.N(r,y,1) << " " << N.N(r,y,2) << endl;
+        cout << "# k [GeV]     Amplitude  " << endl;
+        for (REAL k=1.0/N.MaxR(); k<1.0/N.MinR(); k*=1.1)
+        {
+            cout << k << " " << N.N_k(k, y) << endl;
 
+        }
+    } else if (string(argv[3])=="x")
+    {
+        cout << "# r [1/GeV]     Amplitude   \\partial_r   \\partial2 r" << endl;
+        for (REAL r=N.MinR(); r<N.MaxR(); r*=1.1)
+        {
+            cout << r << " " << N.N(r, y) <<  " "
+             << N.N(r,y,1) << " " << N.N(r,y,2) << endl;
+        }
     }
+    else if (string(argv[3])=="ugd")
+    {
+        UGD ugd(&N);
+
+        for (REAL k=0.1; k<10; k*=1.1)
+        {
+            cout << k << " " << ugd.Evaluate(k, y) << endl;
+        }
+    }
+    else
+    {
+        cerr << "Unkown mode " << argv[3] << endl;
+        return -1;
+    }
+    return 0;
     
 
-    return 0;
 }

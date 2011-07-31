@@ -16,7 +16,7 @@
 Solver::Solver(AmplitudeR* _N)
 {
     N=_N;
-    deltay=0.2;
+    deltay=0.15;
 }
 
 /*
@@ -65,7 +65,7 @@ void Solver::Solve(REAL maxy)
     const gsl_odeiv_step_type * T = gsl_odeiv_step_rk2; //f45;
 
     gsl_odeiv_step * s    = gsl_odeiv_step_alloc (T, vecsize);
-    gsl_odeiv_control * c = gsl_odeiv_control_y_new (0.0, 0.05);    //abserr relerr
+    gsl_odeiv_control * c = gsl_odeiv_control_y_new (0.0, 0.03);    //abserr relerr
     gsl_odeiv_evolve * e  = gsl_odeiv_evolve_alloc (vecsize);
     REAL h = step;  // Initial ODE solver step size
     
@@ -128,7 +128,7 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
     Interpolator interp(tmprarray, tmpyarray, par->N->RPoints());
     interp.Initialize();
     
-    #pragma omp parallel for firstprivate(interp)
+    #pragma omp parallel for schedule(dynamic, 5) firstprivate(interp) 
     for (int rind=0; rind < par->N->RPoints(); rind++)
     {
         for (int thetaind=0; thetaind < par->N->ThetaPoints(); thetaind++)
@@ -143,10 +143,14 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
                 // we don't have to evolve it at large r
                 if (rind>10)
                 {
-                    if (amplitude[rind-2]>0.999 and amplitude[rind-1]>0.999)
+                    if (amplitude[rind-2]>0.9999 and amplitude[rind-1]>0.9999
+                        and amplitude[rind]>0.9999)
                     {
                         dydt[tmpind]=0;
-                        cout << "Skipping r=" << par->N->RVal(rind) << endl;
+                        #pragma omp critical
+                        {
+                            cout << "Skipping r=" << par->N->RVal(rind) << endl;
+                        }
                         continue;
                     }
                 } 
@@ -154,12 +158,14 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
                 REAL tmplnr = par->N->LogRVal(rind);
                 REAL tmplnb = par->N->LogBVal(bind);
                 REAL tmptheta = par->N->ThetaVal(thetaind);
+                /*if (tmpind % 1 == 0) cout << "tmpind " << tmpind << " maxrind "
+                 << par->N->RPoints()-1 << " r=" << par->N->RVal(tmpind) <<
+                 " amplitude " << par->S->InterpolateN(tmplnr, 0, 0, amplitude) ;
+                */
                 dydt[tmpind] = par->S->RapidityDerivative(y, tmplnr, tmplnb, tmptheta,
                     amplitude, &interp);
-                if (tmpind % 1 == 0) cout << "tmpind " << tmpind << " maxrind "
-                 << par->N->RPoints()-1 << " r=" << par->N->RVal(tmpind) <<
-                 " amplitude " << par->S->InterpolateN(tmplnr, 0, 0, amplitude) <<
-                 " dydt " << dydt[tmpind] << endl;
+                //cout << " dydt " << dydt[tmpind] << endl;
+                
             }
         }
     }
@@ -214,7 +220,7 @@ REAL Solver::RapidityDerivative(REAL y,
     helper.n01 = interp->Evaluate(lnr01);
 
     if (rc!=CONSTANT)
-        helper.alphas_r01 = Alpha_s_r(std::exp(2.0*lnr01), alphas_scaling);
+        helper.alphas_r01 = N->Alpha_s_ic(std::exp(2.0*lnr01));
     else
         helper.alphas_r01=0;
 
@@ -271,10 +277,12 @@ REAL Inthelperf_rint(REAL lnr, void* p)
 
     if (!par->N->ImpactParameter()) maxtheta=M_PI-0.0001;
     if (par->Solv->GetRunningCoupling()!=CONSTANT)
-         par->alphas_r02 = Alpha_s_r(std::exp(2.0*lnr),
-            par->Solv->GetAlphasScaling());
+         par->alphas_r02 = par->N->Alpha_s_ic(std::exp(2.0*lnr));
     else
         par->alphas_r02=0;
+        
+        //par->alphas_r02 = Alpha_s_r(std::exp(2.0*lnr),
+         //   par->Solv->GetAlphasScaling());
 
 
     int status; REAL result, abserr;
@@ -313,7 +321,7 @@ REAL Inthelperf_thetaint(REAL theta, void* p)
         REAL alphas_r12=0;
         if (par->Solv->GetRunningCoupling()!=CONSTANT
             and par->Solv->GetRunningCoupling() != PARENT)
-                alphas_r12 = Alpha_s_r(r12sqr, par->Solv->GetAlphasScaling());
+                alphas_r12 = par->N->Alpha_s_ic(r12sqr);
         
         REAL n02 = par->n02;
         //REAL n12 = par->Solv->InterpolateN(0.5*std::log(r12sqr), 0, 0, par->data);
@@ -382,7 +390,7 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
     switch(rc)
     {
         case CONSTANT:
-            result = ALPHAS*Nc/(2.0*SQR(M_PI))
+            result = ALPHABAR_s/(2.0*M_PI)
                     * SQR(r01) / ( SQR(r12) * SQR(r02) );
             break;
         case PARENT:
@@ -423,7 +431,7 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
 
             result = Nc/(2.0*SQR(M_PI)) * (
                 alphas_r02 / SQR(r02)
-                - 2.0*alphas_r02*alphas_r12 / Alpha_s_r(Rsqr, alphas_scaling)
+                - 2.0*alphas_r02*alphas_r12 / N->Alpha_s_ic(Rsqr)
                  * r02dotr12 / (SQR(r02)*SQR(r12) )
                 + alphas_r12 / SQR(r12)
                 );
@@ -543,6 +551,7 @@ RunningCoupling Solver::GetRunningCoupling()
 void Solver::SetAlphasScaling(REAL scaling)
 {
     alphas_scaling = scaling;
+    N->SetAlphasScaling(scaling);
 }
 
 REAL Solver::GetAlphasScaling()

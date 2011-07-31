@@ -22,6 +22,7 @@ int main(int argc, char* argv[])
     std::string output="output.dat";
     RunningCoupling rc=CONSTANT;
     REAL alphas_scaling=1.0;
+    InitialConditionR ic = IPSAT;
     
     if (argc>1)  if (string(argv[1])=="-help")
     {
@@ -29,6 +30,7 @@ int main(int argc, char* argv[])
         cout << "-maxy y: set max rapidity" << endl;
         cout << "-output file: save output to given file" << endl;
         cout << "-rc [CONSTANT,PARENT,BALITSKY,KW,MS]: set RC prescription" << endl;
+        cout << "-ic [IPSAT, AN06]: set initial condition" << endl;
         cout << "-alphas_scaling factor: scale \\lambdaQCD^2 by given factor" << endl;
     }
 
@@ -60,6 +62,17 @@ int main(int argc, char* argv[])
                 return -1;
             }
         }
+        else if (string(argv[i])=="-ic")
+        {
+            if (string(argv[i+1])=="IPSAT")
+                ic = IPSAT;
+            else if (string(argv[i+1])=="AN06")
+                ic = AN06;
+            else
+            {
+                cerr << "Unknown initial condition " << argv[i+1] << endl;
+            }
+        }
         else if (string(argv[i])=="-alphas_scaling")
             alphas_scaling = StrToReal(argv[i+1]);
         else if (string(argv[i]).substr(0,1)=="-")
@@ -70,6 +83,8 @@ int main(int argc, char* argv[])
     }
     
     AmplitudeR N;
+    N.SetInitialCondition(ic);
+    N.Initialize();
     Solver s(&N);
     s.SetRunningCoupling(rc);
     s.SetAlphasScaling(alphas_scaling);
@@ -80,7 +95,7 @@ int main(int argc, char* argv[])
         infostr << argv[i] << " ";
     infostr << endl << "# BK equation solver " << version << endl;
     infostr << "# Running coupling: ";
-    if (rc==CONSTANT) infostr << "constant";
+    if (rc==CONSTANT) infostr << "constant, alphabar=" << ALPHABAR_s;
     if (rc==PARENT) infostr << "parent dipole";
     if (rc==BALITSKY) infostr << "Balitsky";
     if (rc==KW) infostr << "KW";
@@ -88,6 +103,13 @@ int main(int argc, char* argv[])
     infostr << endl;
     if (rc!=CONSTANT)
         infostr << "# Scaling factor in alpha_s: " << alphas_scaling << endl;
+    
+    infostr << "# Initial condition is ";
+    if (ic==IPSAT)
+        infostr << "IPSAT 1-exp(-r^2Q_s^2/4)";
+    else if (ic==AN06)
+        infostr << "AN06 1-exp(-(r^2Q_s^2)^\\gamma/4";
+    infostr << endl;
 
     infostr << "# Solving BK equation up to y=" << maxy << endl;
     infostr << "# r limits: " << N.MinR() << " - " << N.MaxR() << " points "

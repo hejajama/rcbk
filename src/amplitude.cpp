@@ -11,10 +11,12 @@ using std::cout; using std::endl;
 AmplitudeR::AmplitudeR()
 {
     bdep=false;
-    Intialize();
+    alphas_scaling=1.0;
+    SetInitialCondition(IPSAT);
+    
 }
 
-void AmplitudeR::Intialize()
+void AmplitudeR::Initialize()
 {
     if (ImpactParameter())
     {
@@ -102,9 +104,19 @@ int AmplitudeR::AddRapidity(REAL y)
 
 REAL AmplitudeR::InitialCondition(REAL r, REAL b)
 {
-    const REAL Q_s0sqr = 0.24; // Fitted to HERA data at arXiv:0902.1112
-    return 1.0 - exp(-SQR(r)*Q_s0sqr / 4.0 * std::exp( -SQR(b)/2 ) );
-    //return 1.0 - std::exp(-10*SQR(r)*std::exp( -SQR(b)/2 ) );
+    if (ic == IPSAT)
+    {
+        const REAL Q_s0sqr = 0.24; // Fitted to HERA data at arXiv:0902.1112
+        return 1.0 - std::exp(-SQR(r)*Q_s0sqr / 4.0 * std::exp( -SQR(b)/2 ) );
+    }
+    if (ic == AN06)
+    {
+        const REAL Q_s0sqr = 1.0;   // following arXiv:0704.0612, not fitted
+        const REAL gamma = 0.6;
+        return 1.0 - std::exp( -std::pow( SQR(r)*Q_s0sqr, gamma )/4.0 );
+    }
+    cerr << "Unkown initial condition set! " << LINEINFO << endl;
+    return 0;
 }
 
 
@@ -122,10 +134,35 @@ REAL AmplitudeR::Ntable(int yind, int rind, int bind, int thetaind)
     return n[yind][rind][bind][thetaind];
 }
 
+/*
+ * Initial condition dependent strong coupling constant
+ * \lambda_{QCD}^2 and the scaling factor (whether or not there is factor
+ * 4 in the ln[1/(r^2\lambdaQCD^2)] term) may depend on the IC
+ * if alphas_scaling is given, it overrides saved alphas_scaling
+ * 
+ * SetInitialCondition sets appropriate values to required variables
+ */
+REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
+{
+    REAL scalefactor=0;
+    if (std::abs(scaling-1.0)>0.0001)   // Don't use stored value
+        scalefactor = Cfactorsqr*scaling;
+    else
+        scalefactor = Cfactorsqr*alphas_scaling;
+    
+    if (scalefactor/(rsqr*lambdaqcd2) < 1.0) return maxalphas;
+    
+    REAL alpha = 12.0*M_PI/( (33.0-2.0*Nf)*std::log(scalefactor/ (rsqr*lambdaqcd2) ) );
+    if (alpha>maxalphas)
+        return maxalphas;
+    
+    return alpha;
+
+}
 int AmplitudeR::RPoints()
 {
-    return 155;
-    //return 95;
+    return 400;
+    //return 90;
 }
 
 int AmplitudeR::YPoints()
@@ -147,13 +184,15 @@ int AmplitudeR::ThetaPoints()
 
 REAL AmplitudeR::MinR()
 {
-    return 1e-5;
-    //return 1e-6;
+    //return 1e-7;
+    return 1e-9;
+    //return 1e-5;
 }
 
 REAL AmplitudeR::RMultiplier()
 {
-    return 1.1;
+    //return 1.08;
+    return std::pow(50.0/MinR(), 1.0/(RPoints()-1));
 }
 
 REAL AmplitudeR::MaxR()
@@ -220,3 +259,36 @@ bool AmplitudeR::ImpactParameter()
 {
     return bdep;
 }
+
+void AmplitudeR::SetInitialCondition(InitialConditionR ic_)
+{
+    ic=ic_;
+    switch(ic)
+    {
+        case IPSAT:
+            // Values from the fit to the HERA data 0902.1112
+            lambdaqcd2=0.241*0.241;
+            Cfactorsqr=4.0;
+            maxalphas=0.7;
+            break;
+        case AN06:
+            // ref. 0704.0612
+            lambdaqcd2 = 0.2*0.2;
+            Cfactorsqr = 1.0;
+            maxalphas=0.5;
+            break;
+    };
+
+}
+
+InitialConditionR AmplitudeR::InitialCondition()
+{
+    return ic;
+}
+
+void AmplitudeR::SetAlphasScaling(REAL scaling)
+{
+    alphas_scaling=scaling;
+}
+
+

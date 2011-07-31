@@ -22,6 +22,7 @@ typedef unsigned int uint;
 // Physical constants
 //const REAL LAMBDAQCD2 = 0.21416*0.21416;   // GeV^2
 const REAL LAMBDAQCD2 = 0.241*0.241;    // 0902.1112
+//const REAL LAMBDAQCD2 = 0.2*0.2;    // 0704.0612, AN06 model
 const int Nf=3;
 const int Nc=3;
 const REAL ALPHA_e = 1.0/137.035999679; 
@@ -30,8 +31,9 @@ const REAL e = sqrt(4.0*M_PI*ALPHA_e);
 // Reqularization of the running coupling
 // Berger&Stasto 1010.0671: 0.3
 // Fit to HERA: 0.7 0902.1112
-const REAL MAXALPHA = 0.7;  
-const REAL ALPHAS = 0.2;       // \alpha_s if RC=constant
+ const REAL MAXALPHA = 0.7;  
+//const REAL MAXALPHA = 0.5;  // 0704.0612
+const REAL ALPHABAR_s = 0.2;       // \alphabar_s if RC=constant
 
 // Other constants
 

@@ -18,6 +18,9 @@ class AmplitudeLib
 
         // der w.r.t r der times. if sqr, then calculate N^2, not N
         REAL N(REAL r, REAL y, int der=0, bool sqr=false);
+        
+        // Amplitude in k-space 
+        REAL N_k(REAL kt, REAL y);
 
         void InitializeInterpoaltion(REAL y);
     

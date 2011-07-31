@@ -10,11 +10,20 @@
 #include <vector>
 #include <cmath>
 
+enum InitialConditionR
+{
+    IPSAT,
+    AN06    // ref e.g. 0704.012, 1_exp(-(rQ_s)^(2\gamma)/4)
+};
+
+// AmplitudeR::Initialize() must be called before this class is used, but first
+// one needs to set up this (e.g. call SetInitialCondition etc).
+
 class AmplitudeR
 {
 public:
     AmplitudeR();
-    void Intialize();
+    void Initialize();
 
     // Return tabulated value of amplitude
     REAL Ntable(int yind, int rind, int bind=0, int thetaind=0);
@@ -41,12 +50,20 @@ public:
     REAL MaxLnR();
     REAL MinLnR();
     REAL RMultiplier();
+    
+    // Initial condition dependent \\alpha_s
+    REAL Alpha_s_ic(REAL rsqr, REAL scaling=1.0);
 
     bool ImpactParameter(); // return bdep
 
     std::vector<REAL>& LogRVals();
     std::vector<REAL>& LogBVals();
     std::vector<REAL>& ThetaVals();
+    
+    InitialConditionR InitialCondition();
+    void SetInitialCondition(InitialConditionR ic_);
+    
+    void SetAlphasScaling(REAL scaling);
 
 
     // amplitude[yind][rind][bind][thetaind]
@@ -57,6 +74,13 @@ private:
     std::vector<REAL> logbvals;
     std::vector<REAL> thetavals;
     bool bdep;      // do we take into account impact parameter dependency
+    InitialConditionR ic;
+    
+    // Parameters which may depend on the IC
+    REAL lambdaqcd2;
+    REAL alphas_scaling;
+    REAL Cfactorsqr;   // \alpha_s \sim 1/log(C^2/(r^2\lambdaqcd^2))
+    REAL maxalphas;
 };
 
 const REAL MINLN_N = -999;
