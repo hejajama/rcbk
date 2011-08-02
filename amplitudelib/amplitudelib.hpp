@@ -22,22 +22,30 @@ class AmplitudeLib
         // Amplitude in k-space 
         REAL N_k(REAL kt, REAL y);
 
+        // d ln N / d ln r^2
+        REAL LogLogDerivative(REAL r, REAL y);
+
+        // Saturation scale N(r, y) = Ns
+        REAL SaturationScale(REAL y, REAL Ns);
+
         void InitializeInterpoaltion(REAL y);
     
         int YVals();
         int RPoints();
         REAL MinR();
         REAL MaxR();
+        REAL MaxY();
         
         
     private:
         std::vector< std::vector<REAL> > n;
         std::vector<REAL> yvals;
         std::vector<REAL> lnrvals;
+        std::vector<REAL> rvals;
         Interpolator *interpolator;
 
         REAL interpolator_y;
-        REAL* tmplnrarray;
+        REAL* tmprarray;
         REAL* tmpnarray;
 
         REAL minr;

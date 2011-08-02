@@ -9,6 +9,7 @@
 #include "../src/config.hpp"
 #include <string>
 #include <cmath>
+#include <gsl/gsl_roots.h>
 
 
 extern "C"
@@ -46,23 +47,23 @@ REAL AmplitudeLib::N(REAL r, REAL y, int der, bool sqr)
             << LINEINFO << endl;
         return 0;
     }
-    REAL lnr = std::log(r);
+    //REAL lnr = std::log(r);
 
     /// Use already initialized interpolator
     if (std::abs(y - interpolator_y) < 0.01)
     {
         REAL result=0;
         if (der==0)
-            result = interpolator->Evaluate(lnr);
+            result = interpolator->Evaluate(r);
         if (der==1)
         {
-            result = interpolator->Derivative(lnr);
-            result /= r;    // dN / d ln r = r dN/dr
+            result = interpolator->Derivative(r);
+            //result /= r;    // dN / d ln r = r dN/dr
         }
         if (der==2)
         {
-            result = interpolator->Derivative2(lnr);
-            result /= SQR(r);   // d^2N / d lnr^2 = r^2 d^2 N / dr^2
+            result = interpolator->Derivative2(r);
+            //result /= SQR(r);   // d^2N / d lnr^2 = r^2 d^2 N / dr^2
         }
         return result;
 
@@ -71,7 +72,7 @@ REAL AmplitudeLib::N(REAL r, REAL y, int der, bool sqr)
 
     /// Initialize new interpolator and use it
     int yind = FindIndex(y, yvals);
-    int rind = FindIndex(lnr, lnrvals);
+    int rind = FindIndex(r, rvals);
 
     int interpolation_points = INTERPOLATION_POINTS;
 
@@ -97,7 +98,7 @@ REAL AmplitudeLib::N(REAL r, REAL y, int der, bool sqr)
     REAL *tmpxarray = new REAL[interpo_points];
     for (int i=interpolation_start; i<= interpolation_end; i++)
     {
-		tmpxarray[i-interpolation_start]=lnrvals[i];
+		tmpxarray[i-interpolation_start]=rvals[i];
 
         tmparray[i-interpolation_start] = n[yind][i];
 
@@ -109,23 +110,23 @@ REAL AmplitudeLib::N(REAL r, REAL y, int der, bool sqr)
                 / (yvals[yind+1]-yvals[yind]);
 		}
         if (sqr)
-            tmparray[i-interpolation_start] = SQR(tmparray[i-interpolation_start]);
+            cerr << "sqr is not working!\n";
     }
     
     Interpolator interp(tmpxarray, tmparray, interpo_points);
     interp.Initialize();
     REAL result=0;
     if (der==0)
-        result = interp.Evaluate(lnr);
+        result = interp.Evaluate(r);
     if (der==1)
     {
-        result = interp.Derivative(lnr);
-        result /= r;    // dN / d ln r = r dN/dr
+        result = interp.Derivative(r);
+        //result /= r;    // dN / d ln r = r dN/dr
     }
     if (der==2)
     {
-        result = interp.Derivative2(lnr);
-        result /= SQR(r);   // d^2N / d lnr^2 = r^2 d^2 N / dr^2
+        result = interp.Derivative2(r);
+        //result /= SQR(r);   // d^2N / d lnr^2 = r^2 d^2 N / dr^2
     }
     
     delete[] tmparray;
@@ -177,12 +178,13 @@ AmplitudeLib::AmplitudeLib(std::string datafile)
     rmultiplier = data.RMultiplier();
     rpoints = data.RPoints();
 
-    tmplnrarray = new REAL[data.RPoints()];
+    tmprarray = new REAL[data.RPoints()];
     tmpnarray = new REAL[data.RPoints()];
     for (int i=0; i<rpoints; i++)
     {
         lnrvals.push_back(std::log(minr*std::pow(rmultiplier, i)));
-        tmplnrarray[i] = lnrvals[i];
+        rvals.push_back(std::exp(lnrvals[i]));
+        tmprarray[i] = std::exp(lnrvals[i]);
     }
 
     cout << "# Data read from file " << datafile << ", minr: " << minr
@@ -192,6 +194,74 @@ AmplitudeLib::AmplitudeLib(std::string datafile)
     interpolator_y=-1;  // if >=0, interpolator is initialized, must free
     // memory (delete tmprarray and tmpnarray at the end)
 }
+
+/*
+ * d ln N / d ln r^2 = 1/N * d N / d ln r^2 = 1/N d N / dr^2  dr^2 / d ln r^2
+ *  = 1/N d N / dr^2 r^2 = 1/N d N / dr  dr / dr^2  r^2 = r/(2N) * dN/dr
+ */
+REAL AmplitudeLib::LogLogDerivative(REAL r, REAL y)
+{
+    REAL dndr = N(r,y,1);
+    return r/(2.0*N(r,y))*dndr;
+}
+
+/*
+ * Calculate saturation scale, definition is
+ * N(r_s, y) = Ns = (for example) 0.5
+ */
+struct SatscaleSolverHelper
+{
+    REAL y;
+    REAL Ns;
+    AmplitudeLib* N;
+};
+REAL SatscaleSolverHelperf(double r, void* p)
+{
+    SatscaleSolverHelper* par = (SatscaleSolverHelper*)p;
+    return par->N->N(r, par->y) - par->Ns;
+}
+
+REAL AmplitudeLib::SaturationScale(REAL y, REAL Ns)
+{
+    const int MAX_ITER = 300;
+    const REAL ROOTFINDACCURACY = 0.01;
+
+    SatscaleSolverHelper helper;
+    helper.y=y; helper.Ns=Ns; helper.N=this;
+    
+    gsl_function f;
+    f.params = &helper;
+    f.function = &SatscaleSolverHelperf;
+
+    const gsl_root_fsolver_type *T = gsl_root_fsolver_bisection;
+    gsl_root_fsolver *s = gsl_root_fsolver_alloc(T);
+    
+    gsl_root_fsolver_set(s, &f, MinR()*1.0001, MaxR()*0.999);
+    int iter=0; int status; double min,max;
+    do
+    {
+        iter++;
+        gsl_root_fsolver_iterate(s);
+        min = gsl_root_fsolver_x_lower(s);
+        max = gsl_root_fsolver_x_upper(s);
+        status = gsl_root_test_interval(min, max, 0, ROOTFINDACCURACY);    
+
+    } while (status == GSL_CONTINUE and iter < MAX_ITER);
+
+    if (iter>=MAX_ITER)
+    {
+        cerr << "Solving failed at y=" << y << endl;
+    }
+
+    REAL res = gsl_root_fsolver_root(s);
+
+    gsl_root_fsolver_free(s);
+
+    return res;
+}
+
+
+
 
 /*
  * Initializes interpolation method with all read data points at given y
@@ -204,11 +274,11 @@ void AmplitudeLib::InitializeInterpoaltion(REAL y)
     }
     for (int i=0; i<rpoints; i++)
     {
-        REAL tmpr = std::exp(tmplnrarray[i]);
+        REAL tmpr = tmprarray[i];
         if (i==0) tmpr*=1.001; if (i==rpoints-1) tmpr*=0.999;
         tmpnarray[i] = N(tmpr, y);
     }
-    interpolator = new Interpolator(tmplnrarray, tmpnarray, rpoints);
+    interpolator = new Interpolator(tmprarray, tmpnarray, rpoints);
     interpolator->Initialize();
     interpolator_y = y;
 }
@@ -220,7 +290,7 @@ AmplitudeLib::~AmplitudeLib()
         delete interpolator;
     }
     delete[] tmpnarray;
-    delete[] tmplnrarray;
+    delete[] tmprarray;
 }
 
 int AmplitudeLib::RPoints()
@@ -240,4 +310,9 @@ REAL AmplitudeLib::MaxR()
 int AmplitudeLib::YVals()
 {
     return yvals.size();
+}
+
+REAL AmplitudeLib::MaxY()
+{
+    return yvals[yvals.size()-1];
 }
