@@ -15,16 +15,67 @@
 using std::string;
 const string version = "v. 0.1  2011-xx-xx";
 
+enum Mode
+{
+    X,
+    K,
+    SATSCALE,
+    GD
+};
+
 int main(int argc, char* argv[])
 {
+    std::stringstream infostr;
+    infostr << "#";
+    for (int i=0; i<argc; i++)
+        infostr << argv[i] << " ";
+    cout << infostr.str() << endl;
+    
     gsl_set_error_handler(&ErrHandler);
-    cout << "# Reading data from file " << argv[1] << endl;
-    AmplitudeLib N(argv[1]);
-    REAL y = StrToReal(argv[2]);
+
+    Mode mode=X;
+    REAL Ns=0.5;
+    REAL y=0;
+    string datafile="output.dat";
+
+    if (string(argv[1])=="-help")
+    {
+        cout << "-y y: set rapidity" << endl;
+        cout << "-data datafile" << endl;
+        cout << "-x: print amplitude in x space" << endl;
+        cout << "-k: print amplitude in k space" << endl;
+        cout << "-satscale Ns, print satscale r_s defined as N(r_s)=Ns" << endl;
+        return 0;
+    }
+    
+    for (int i=1; i<argc; i++)
+    {
+        if (string(argv[i])=="-y")
+            y = StrToReal(argv[i+1]);
+        else if (string(argv[i])=="-data")
+            datafile = argv[i+1];
+        else if (string(argv[i])=="-x")
+            mode=X;
+        else if (string(argv[i])=="-k")
+            mode=K;
+        else if (string(argv[i])=="-satscale")
+        {
+            mode=SATSCALE;
+            Ns = StrToReal(argv[i+1]);
+        }
+        else if (string(argv[i]).substr(0,1)=="-")
+        {
+            cerr << "Unrecoginzed parameter " << argv[i] << endl;
+            return -1;
+        }
+    }
+
+    cout << "# Reading data from file " << datafile << endl;
+    AmplitudeLib N(datafile);
     N.InitializeInterpoaltion(y);
     cout << "# y = " << y << endl;
-    
-    if (string(argv[3])=="k")
+
+    if (mode==K)
     {
         cout << "# k [GeV]     Amplitude  " << endl;
         for (REAL k=1.0/N.MaxR(); k<1.0/N.MinR(); k*=1.1)
@@ -32,16 +83,27 @@ int main(int argc, char* argv[])
             cout << k << " " << N.N_k(k, y) << endl;
 
         }
-    } else if (string(argv[3])=="x")
+    } else if (mode==X)
     {
-        cout << "# r [1/GeV]     Amplitude   \\partial_r   \\partial2 r" << endl;
-        for (REAL r=N.MinR(); r<N.MaxR(); r*=1.1)
+        cout << "# r [1/GeV]     Amplitude   \\partial_r   \\partial2"
+         << " r d ln N / d ln r^2" << endl;
+        for (REAL r=N.MinR()*1.01; r<N.MaxR(); r*=1.1)
         {
             cout << r << " " << N.N(r, y) <<  " "
-             << N.N(r,y,1) << " " << N.N(r,y,2) << endl;
+             << N.N(r,y,1) << " " << N.N(r,y,2) <<
+             " " << N.LogLogDerivative(r,y) << endl;
         }
     }
-    else if (string(argv[3])=="ugd")
+    else if (mode==SATSCALE)
+    {
+        cout <<"# Saturation scale N(r_s) = " << Ns << endl;
+        cout <<"# y    r_s [1/GeV]" << endl;
+        for (REAL y=0; y < N.MaxY(); y+=0.1)
+        {
+            cout << y << " " << N.SaturationScale(y, Ns) << endl;
+        }
+    }
+    else if (mode==GD)
     {
         UGD ugd(&N);
 
