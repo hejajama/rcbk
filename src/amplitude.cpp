@@ -36,6 +36,7 @@ void AmplitudeR::Initialize()
     {
         logrvals.push_back(std::log(MinR()
                 * std::pow(RMultiplier(), rind) ) );
+        rvals.push_back(std::exp(logrvals[rind]));
         if (ImpactParameter()) logbvals.push_back(logrvals[rind]);
     }
     if (logrvals[logrvals.size()-1]<0)
@@ -101,18 +102,19 @@ int AmplitudeR::AddRapidity(REAL y)
     return yvals.size()-1;
 }
 
-
 REAL AmplitudeR::InitialCondition(REAL r, REAL b)
 {
     if (ic == IPSAT)
     {
         const REAL Q_s0sqr = 0.24; // Fitted to HERA data at arXiv:0902.1112
+        if (r<1e-6) return SQR(r)*Q_s0sqr / 4.0 * std::exp( -SQR(b)/2 );
         return 1.0 - std::exp(-SQR(r)*Q_s0sqr / 4.0 * std::exp( -SQR(b)/2 ) );
     }
     if (ic == AN06)
     {
         const REAL Q_s0sqr = 1.0;   // following arXiv:0704.0612, not fitted
         const REAL gamma = 0.6;
+        if (r<1e-6) return std::pow(SQR(r)*Q_s0sqr,gamma)/4.0;
         return 1.0 - std::exp( -std::pow( SQR(r)*Q_s0sqr, gamma )/4.0 );
     }
     cerr << "Unkown initial condition set! " << LINEINFO << endl;
@@ -161,7 +163,7 @@ REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
 }
 int AmplitudeR::RPoints()
 {
-    return 400;
+    return 300;
     //return 90;
 }
 
@@ -184,7 +186,8 @@ int AmplitudeR::ThetaPoints()
 
 REAL AmplitudeR::MinR()
 {
-    //return 1e-7;
+    return 1e-7;  // kw
+    return 2e-8;
     return 1e-9;
     //return 1e-5;
 }
@@ -212,7 +215,7 @@ REAL AmplitudeR::MinLnR()
 
 REAL AmplitudeR::RVal(int rind)
 {
-    return std::exp( logrvals[rind] );
+    return rvals[rind];
 }
 
 REAL AmplitudeR::LogRVal(int rind)

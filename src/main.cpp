@@ -19,6 +19,7 @@ int main(int argc, char* argv[])
 {
     gsl_set_error_handler(&ErrHandler);
     REAL maxy=1;
+    REAL dy = 0.2;  // ystep
     std::string output="output.dat";
     RunningCoupling rc=CONSTANT;
     REAL alphas_scaling=1.0;
@@ -32,6 +33,7 @@ int main(int argc, char* argv[])
         cout << "-rc [CONSTANT,PARENT,BALITSKY,KW,MS]: set RC prescription" << endl;
         cout << "-ic [IPSAT, AN06]: set initial condition" << endl;
         cout << "-alphas_scaling factor: scale \\lambdaQCD^2 by given factor" << endl;
+        cout << "-ystep step: set rapidity step size" << endl;
     }
 
     /*******************
@@ -75,6 +77,8 @@ int main(int argc, char* argv[])
         }
         else if (string(argv[i])=="-alphas_scaling")
             alphas_scaling = StrToReal(argv[i+1]);
+        else if (string(argv[i])=="-ystep")
+            dy = StrToReal(argv[i+1]);
         else if (string(argv[i]).substr(0,1)=="-")
         {
             cerr << "Unrecoginzed parameter " << argv[i] << endl;
@@ -88,6 +92,7 @@ int main(int argc, char* argv[])
     Solver s(&N);
     s.SetRunningCoupling(rc);
     s.SetAlphasScaling(alphas_scaling);
+    s.SetDeltaY(dy);
 
     std::stringstream infostr;
     infostr << "#";
@@ -114,6 +119,7 @@ int main(int argc, char* argv[])
     infostr << "# Solving BK equation up to y=" << maxy << endl;
     infostr << "# r limits: " << N.MinR() << " - " << N.MaxR() << " points "
     << N.RPoints() << " multiplier " << N.RMultiplier() << endl;
+    infostr << "# maxy " << maxy << " ystep " << dy << endl;
     cout << infostr.str() ;
 
     s.Solve(maxy);

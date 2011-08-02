@@ -28,6 +28,8 @@ public:
     // Return tabulated value of amplitude
     REAL Ntable(int yind, int rind, int bind=0, int thetaind=0);
 
+
+
     // Returns index of the added rapidity
     int AddRapidity(REAL y);
 
@@ -72,6 +74,7 @@ private:
     std::vector<REAL> logrvals;
     std::vector<REAL> yvals;
     std::vector<REAL> logbvals;
+    std::vector<REAL> rvals;
     std::vector<REAL> thetavals;
     bool bdep;      // do we take into account impact parameter dependency
     InitialConditionR ic;

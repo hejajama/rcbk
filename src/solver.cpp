@@ -16,7 +16,7 @@
 Solver::Solver(AmplitudeR* _N)
 {
     N=_N;
-    deltay=0.15;
+    deltay=0.2;
 }
 
 /*
@@ -122,7 +122,7 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
     REAL *tmpyarray = new REAL[par->N->RPoints()];
     for (int i=0; i<par->N->RPoints(); i++)
     {
-        tmprarray[i] = par->N->LogRVal(i);
+        tmprarray[i] = par->N->RVal(i);
         tmpyarray[i] = amplitude[i];
     }
     Interpolator interp(tmprarray, tmpyarray, par->N->RPoints());
@@ -147,10 +147,10 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
                         and amplitude[rind]>0.9999)
                     {
                         dydt[tmpind]=0;
-                        #pragma omp critical
+                        /*#pragma omp critical
                         {
                             cout << "Skipping r=" << par->N->RVal(rind) << endl;
-                        }
+                        }*/
                         continue;
                     }
                 } 
@@ -158,10 +158,10 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
                 REAL tmplnr = par->N->LogRVal(rind);
                 REAL tmplnb = par->N->LogBVal(bind);
                 REAL tmptheta = par->N->ThetaVal(thetaind);
-                /*if (tmpind % 1 == 0) cout << "tmpind " << tmpind << " maxrind "
+                /*cout << "tmpind " << tmpind << " maxrind "
                  << par->N->RPoints()-1 << " r=" << par->N->RVal(tmpind) <<
-                 " amplitude " << par->S->InterpolateN(tmplnr, 0, 0, amplitude) ;
-                */
+                 " amplitude " << par->S->InterpolateN(tmplnr, 0, 0, amplitude) ;*/
+                
                 dydt[tmpind] = par->S->RapidityDerivative(y, tmplnr, tmplnb, tmptheta,
                     amplitude, &interp);
                 //cout << " dydt " << dydt[tmpind] << endl;
@@ -217,7 +217,7 @@ REAL Solver::RapidityDerivative(REAL y,
     helper.interp = interp;
     helper.bdep = N->ImpactParameter();
     //helper.n01 = InterpolateN(lnr01, lnb01, thetab, data);
-    helper.n01 = interp->Evaluate(lnr01);
+    helper.n01 = interp->Evaluate(std::exp(lnr01));
 
     if (rc!=CONSTANT)
         helper.alphas_r01 = N->Alpha_s_ic(std::exp(2.0*lnr01));
@@ -259,12 +259,12 @@ REAL Inthelperf_rint(REAL lnr, void* p)
 {
     Inthelper_rthetaint* par = (Inthelper_rthetaint*)p;
 
-    const int THETAINTPOINTS = 300;
+    const int THETAINTPOINTS = 100;
     const REAL THETAINTACCURACY = 0.05;
 
     par->lnr02=lnr;
     //par->n02 = par->Solv->InterpolateN(lnr, 0, 0, par->data);
-    par->n02 = par->interp->Evaluate(lnr);
+    par->n02 = par->interp->Evaluate(std::exp(lnr));
     gsl_function fun;
     fun.function = Inthelperf_thetaint;
     fun.params = par;
@@ -290,7 +290,7 @@ REAL Inthelperf_rint(REAL lnr, void* p)
             maxtheta, 0, THETAINTACCURACY, THETAINTPOINTS,
             GSL_INTEG_GAUSS51, workspace, &result, &abserr);
     gsl_integration_workspace_free(workspace);
-    if (status and std::abs(result)>1e-6)
+    if (status and std::abs(result)>1e-3)   ///TODO: Fails at small r2 if r0 \approx 1
     {
         cerr << "Thetaint failed at " << LINEINFO <<": r=" << std::exp(lnr) 
             << " n01 " << par->n01 <<
@@ -316,8 +316,12 @@ REAL Inthelperf_thetaint(REAL theta, void* p)
         REAL r01 = std::exp(par->lnr01);
         REAL r02 = std::exp(par->lnr02);
         REAL r12sqr = SQR(r01)+SQR(r02)-2.0*r01*r02*std::cos(theta);
-        if (r12sqr < SQR(par->N->MinR())) return 0;
-        if (r12sqr > SQR(par->N->MaxR())) return 0;
+
+        REAL n12=0;
+        if (r12sqr < SQR(par->N->MinR())) n12=0;
+        else if (r12sqr > SQR(par->N->MaxR())) n12=1;
+        else n12 = par->interp->Evaluate(std::sqrt(r12sqr));
+        //else n12=par->Solv->InterpolateN(0.5*std::log(r12sqr), 0, 0, par->data);
         REAL alphas_r12=0;
         if (par->Solv->GetRunningCoupling()!=CONSTANT
             and par->Solv->GetRunningCoupling() != PARENT)
@@ -325,7 +329,6 @@ REAL Inthelperf_thetaint(REAL theta, void* p)
         
         REAL n02 = par->n02;
         //REAL n12 = par->Solv->InterpolateN(0.5*std::log(r12sqr), 0, 0, par->data);
-        REAL n12 = par->interp->Evaluate(0.5*std::log(r12sqr));
         REAL n01 = par->n01;
 
         REAL result = n02 + n12 - n01 - n02*n12;
@@ -378,9 +381,9 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
         REAL alphas_r02, REAL alphas_r12, REAL y,
         REAL theta2, REAL b01, REAL thetab)
 {
-    if (r12<1e-5 or r02 < 1e-5)
+    if (r12<N->MinR() or r02 < N->MinR())
         return 0;
-    REAL result;
+    REAL result=0;
 
     // Ref for different prescriptions: 0704.0612
     // Convention: r01=r, r02 = r1, r12=r2
@@ -406,7 +409,7 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
             );
             break;
         case KW:
-            if (std::abs(SQR(r02)-SQR(r12)) < 1e-3) return 0;
+            if (std::abs(SQR(r02)-SQR(r12)) < 1e-50) return 0;
 
             costheta2 = std::cos(theta2);
             r02dotr12 = SQR(r02) - r02*r01*costheta2;
@@ -454,11 +457,13 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
             costheta2 = std::cos(theta2);
             r02dotr12 = SQR(r02) - r02*r01*costheta2;
 
+            REAL besselr02r01 = gsl_sf_bessel_K1(r02/r01*zsqrt);
+            REAL besselr12r01 = gsl_sf_bessel_K1(r12/r01*zsqrt);
+
             result = z/SQR(r01) * (
-                  SQR( gsl_sf_bessel_K1(r02/r01*zsqrt) )
-                + SQR( gsl_sf_bessel_K1(r12/r01*zsqrt) )
-                -  2.0*gsl_sf_bessel_K1(r02/r01*zsqrt)
-                      *gsl_sf_bessel_K1(r12/r01*zsqrt)
+                  SQR( besselr02r01 )
+                + SQR( besselr12r01 )
+                -  2.0*besselr02r01*besselr12r01
                   * r02dotr12 / (r02*r12)
                 );
 
@@ -476,6 +481,7 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
  */
 REAL Solver::InterpolateN(REAL lnr, REAL lnb, REAL thetab, const REAL* data)
 {
+    //cerr << "Solver::InterpolateN called, why?" << endl;
     // array format: ind = rind*BPoitns()*ThetaPoints()+bind*ThetaPoints()+Theta
     if (lnr > N->MaxLnR()) lnr = N->MaxLnR()*0.999;
     else if (lnr < N->MinLnR()) lnr = N->MinLnR()*0.999;  ///TODO: Same check for lnb
@@ -513,15 +519,15 @@ REAL Solver::InterpolateN(REAL lnr, REAL lnb, REAL thetab, const REAL* data)
         }
         int points = interpolation_end - interpolation_start + 1;
         REAL *tmpnarray = new REAL[points];
-        REAL *tmplnrarray = new REAL[points];
+        REAL *tmprarray = new REAL[points];
         for (int i=interpolation_start; i<=interpolation_end; i++)
         {
             tmpnarray[i-interpolation_start] = data[i];
-            tmplnrarray[i-interpolation_start] = N->LogRVal(i);
+            tmprarray[i-interpolation_start] = N->RVal(i);
         }
-        Interpolator interp(tmplnrarray, tmpnarray, points);
+        Interpolator interp(tmprarray, tmpnarray, points);
         interp.Initialize();
-        REAL result = interp.Evaluate(lnr);
+        REAL result = interp.Evaluate(std::exp(lnr));
 
         if (result < -1e-3 or result>1.001)
         {
@@ -530,7 +536,7 @@ REAL Solver::InterpolateN(REAL lnr, REAL lnb, REAL thetab, const REAL* data)
         }
 
         delete[] tmpnarray;
-        delete[] tmplnrarray;
+        delete[] tmprarray;
 
         return result;
         

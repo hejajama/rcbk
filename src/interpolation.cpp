@@ -121,7 +121,7 @@ REAL Interpolator::Evaluate(REAL x)
 
 REAL Interpolator::Derivative(REAL x)
 {
-    REAL res; int status;
+    REAL res; int status=0;
     switch(method)
     {
         case INTERPOLATE_SPLINE:
@@ -136,8 +136,10 @@ REAL Interpolator::Derivative(REAL x)
             }
             gsl_matrix_free(mat);
             return res;
-            
     }
+    if (status)
+        cerr << "An error occurred while evaluating the derivative at x=" << x
+        << " result " << res << " " << LINEINFO << endl;
 
     return res;
 }
