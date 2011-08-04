@@ -1,9 +1,8 @@
-CXXFLAGS = `gsl-config --cflags` -O3 -Wall -pedantic #-fopenmp# -I ./libbci-1.1.0/ 
+CXXFLAGS = `gsl-config --cflags` -O2 -Wall -pedantic -fopenmp# -I ./libbci-1.1.0/ 
 LDFLAGS = `gsl-config --libs` -lm 
 
 SOURCES = amplitudelib/main.cpp amplitudelib/amplitudelib.cpp \
-	amplitudelib/datafile.cpp src/interpolation.cpp src/tools.cpp \
-	amplitudelib/ugd.cpp 
+	amplitudelib/datafile.cpp src/interpolation.cpp src/tools.cpp 
 FTSOURCES = amplitudelib/fourier/fourier.c
 OBJECTS = $(SOURCES:.cpp=.o)
 FTOBJECTS = $(FTSOURCES:.c=.o)

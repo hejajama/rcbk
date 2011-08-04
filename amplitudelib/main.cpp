@@ -20,7 +20,8 @@ enum Mode
     X,
     K,
     SATSCALE,
-    GD
+    GD,
+    DSIGMADY
 };
 
 int main(int argc, char* argv[])
@@ -44,6 +45,8 @@ int main(int argc, char* argv[])
         cout << "-data datafile" << endl;
         cout << "-x: print amplitude in x space" << endl;
         cout << "-k: print amplitude in k space" << endl;
+        cout << "-ugd: print unintegrated gluon distribution" << endl;
+        cout << "-dsigmady: print d\\sigma/dy" << endl;
         cout << "-satscale Ns, print satscale r_s defined as N(r_s)=Ns" << endl;
         return 0;
     }
@@ -58,6 +61,10 @@ int main(int argc, char* argv[])
             mode=X;
         else if (string(argv[i])=="-k")
             mode=K;
+        else if (string(argv[i])=="-ugd")
+            mode=GD;
+        else if (string(argv[i])=="-dsigmady")
+            mode=DSIGMADY;
         else if (string(argv[i])=="-satscale")
         {
             mode=SATSCALE;
@@ -77,11 +84,18 @@ int main(int argc, char* argv[])
 
     if (mode==K)
     {
+        REAL mink = 1e-5; REAL maxk = 1.0/N.MinR()*100;
+        int kpoints=100;
+        REAL kmultiplier = std::pow(maxk/mink, 1.0/(kpoints-1.0));
         cout << "# k [GeV]     Amplitude  " << endl;
-        for (REAL k=1.0/N.MaxR(); k<1.0/N.MinR(); k*=1.1)
+        for (int kind=0; kind<kpoints; kind++)
         {
-            cout << k << " " << N.N_k(k, y) << endl;
-
+            REAL tmpk = mink*std::pow(kmultiplier, kind);
+            REAL res = N.N_k(tmpk, y);
+            #pragma omp critical
+            {
+                cout <<tmpk << " " << res << endl;
+            }
         }
     } else if (mode==X)
     {
@@ -105,12 +119,41 @@ int main(int argc, char* argv[])
     }
     else if (mode==GD)
     {
-        UGD ugd(&N);
-
-        for (REAL k=0.1; k<10; k*=1.1)
+        REAL mink=0.3; REAL maxk=20;
+        int kpoints=250;
+        REAL kmultiplier = std::pow(maxk/mink, 1.0/(kpoints-1.0));
+        cout << "# UGD" << endl << "# k_T [GeV]   UGD" << endl;
+        #pragma omp parallel for schedule(dynamic, 5)
+        for (int kind=0; kind<kpoints; kind++)
         {
-            cout << k << " " << ugd.Evaluate(k, y) << endl;
+            REAL tmpk = mink*std::pow(kmultiplier, kind);
+            REAL result = N.UGD(tmpk, y);
+            #pragma omp critical
+            {
+                cout << tmpk << " " << result << endl;
+            }
         }
+    }
+    else if (mode==DSIGMADY)
+    {
+        REAL miny=-3;
+        REAL maxy=3;
+        int ypoints=30;
+        cout << "#d\\sigma/dy, sqrt(s) = 200" << endl;
+        cout << "# y     d\\sigma/dy" << endl;
+        #pragma omp parallel for
+        for (int yind=0; yind<=ypoints; yind++)
+        {
+            REAL tmpy = miny + (maxy-miny)/ypoints*yind;
+            REAL result = N.dSigmady(y, 200);
+            //REAL result = N.dSigmadyd2pt(3, 3.0/200.0*std::exp(tmpy), 3.0/200.0*std::exp(-tmpy));
+            #pragma omp critical
+            {
+                cout << tmpy << " " << result << endl;
+            }
+        }
+
+
     }
     else
     {

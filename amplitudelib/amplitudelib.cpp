@@ -10,6 +10,8 @@
 #include <string>
 #include <cmath>
 #include <gsl/gsl_roots.h>
+#include <gsl/gsl_integration.h>
+#include <algorithm>
 
 
 extern "C"
@@ -22,9 +24,8 @@ extern "C"
  * Interpolate rapidity linearly and r using spline
  *
  * By default der=0, der=1 is 1st derivative w.r.t r, 2 2nd
- * if (sqr), then work with N^2, by default sqr=false
  */
-REAL AmplitudeLib::N(REAL r, REAL y, int der, bool sqr)
+REAL AmplitudeLib::N(REAL r, REAL y, int der)
 {
     if (der>2 or der<0)
     {
@@ -69,7 +70,6 @@ REAL AmplitudeLib::N(REAL r, REAL y, int der, bool sqr)
 
     }
 
-
     /// Initialize new interpolator and use it
     int yind = FindIndex(y, yvals);
     int rind = FindIndex(r, rvals);
@@ -109,8 +109,6 @@ REAL AmplitudeLib::N(REAL r, REAL y, int der, bool sqr)
                 + (y - yvals[yind]) * (n[yind+1][i] - n[yind][i])
                 / (yvals[yind+1]-yvals[yind]);
 		}
-        if (sqr)
-            cerr << "sqr is not working!\n";
     }
     
     Interpolator interp(tmpxarray, tmparray, interpo_points);
@@ -170,6 +168,216 @@ REAL N_k_helperf(REAL r, void* p)
     return 1.0/r*par->N->N(r, par->y);
 }
 
+/*
+ * Unintegrated gluon density
+ * \psi(k, y) = C_F/( (2\pi)^3 \alphas(k) ) * \int d^2 r exp(-ik.r) \nabla^2 N_G,
+ * \nabla^2 N_G = (1/r \der_r + \der^2_r)(2N-N^2)
+ *  = 2/r \der N + 2 \der^2 N - 2N/r \der N - 2(\der r N)^2 - 2N \der^2 N
+ *
+ * For performance reasons it is probably a good idea to call
+ * InitializeInterpoaltion before this
+ */
+
+struct UGDHelper
+{
+    REAL y;
+    AmplitudeLib* N;
+};
+REAL UGDHelperf(REAL x, void* p);
+
+REAL AmplitudeLib::UGD(REAL k, REAL y)
+{
+    if (k < UGD_IR_CUTOFF) return 0;
+    
+    set_fpu_state();
+    init_workspace_fourier(1500);   // number of bessel zeroes, max 2000
+
+    UGDHelper par;
+    par.y=y; par.N=this; 
+    REAL result = fourier_j0(k,UGDHelperf,&par);
+
+    REAL Cf = (SQR(Nc)-1.0)/(2.0*Nc);
+    result *= Cf/Alpha_s(SQR(k));  //Todo: scaling?
+    result /= SQR(2.0*M_PI);
+
+    return result;
+
+}
+
+REAL UGDHelperf(REAL r, void* p)
+{
+    UGDHelper* par = (UGDHelper*) p;
+    REAL result=0;
+    REAL dern=0, der2n=0, n=0;
+    if (r > par->N->MaxR()) // N==1 for all r>MaxR()
+    {
+        n=1; dern=0; der2n=0;
+    }
+    else if (r < 1e-5)       //  TODO: par->N->MinR())
+        return 0;
+    else
+    {       
+        dern = par->N->N(r, par->y, 1);
+        der2n = par->N->N(r, par->y, 2);
+        n = par->N->N(r, par->y);
+    }
+
+    result = 2.0/r*dern + 2*der2n - 2.0*n/r*dern - 2.0*SQR(dern) - 2.0*n*der2n;
+    return r*result;
+}
+
+/*
+ * k_T factorization, calculate d\sigma^{A+B -> g} / (dy d^2 p_T)
+ * Ref. 1011.5161 eq. (8)
+ * Normalization is arbitrary
+ */
+struct Inthelper_dsigmadyd2pt
+{
+    AmplitudeLib* N;
+    REAL pt, x1, x2;
+    REAL kt;
+    REAL sqrts,y;
+};
+REAL Inthelperf_dsigmadyd2pt(REAL kt, void* p);
+REAL Inthelperf_dsigmadyd2pt_thetaint(REAL kt, void* p);
+REAL AmplitudeLib::dSigmadyd2pt(REAL pt, REAL x1, REAL x2)
+{
+    const int KTINTPOINTS = 100;
+    const REAL KTINTACCURACY = 0.05;
+    
+    Inthelper_dsigmadyd2pt helper;
+    helper.N=this; helper.pt=pt; helper.x1=x1; helper.x2=x2;
+
+    gsl_function fun;
+    fun.params = &helper;
+    fun.function = Inthelperf_dsigmadyd2pt;
+
+    gsl_integration_workspace *workspace 
+     = gsl_integration_workspace_alloc(KTINTPOINTS);
+
+    REAL minkt = 0;
+    REAL maxkt = pt;
+
+    int status; REAL result, abserr;
+    status=gsl_integration_qag(&fun, minkt, maxkt,
+            0, KTINTACCURACY, KTINTPOINTS,
+            GSL_INTEG_GAUSS51, workspace, &result, &abserr);
+    gsl_integration_workspace_free(workspace);
+
+    if (status)
+    {
+        cerr << "k_T integration failed at " << LINEINFO <<", pt=" << pt
+            << ", x1=" << x1 <<", x2=" << x2 <<", result=" << result
+            <<" relerr " << std::abs(abserr/result) << endl;
+    }
+    return result/(4.0*SQR(pt));    // 4.0 is in the integration measure d^2k/4
+}
+
+REAL Inthelperf_dsigmadyd2pt(REAL kt, void* p)
+{
+    const int THETAINTPOINTS = 80;
+    const REAL THETAINTACCURACY = 0.05;
+    
+    Inthelper_dsigmadyd2pt* par = (Inthelper_dsigmadyd2pt*) p;
+    par->kt=kt;
+    gsl_function fun; fun.params=par;
+    fun.function=Inthelperf_dsigmadyd2pt_thetaint;
+    
+    gsl_integration_workspace *workspace 
+     = gsl_integration_workspace_alloc(THETAINTPOINTS);
+
+    int status; REAL result, abserr;
+    status=gsl_integration_qag(&fun, 0, M_PI,
+            0, THETAINTACCURACY, THETAINTPOINTS,
+            GSL_INTEG_GAUSS51, workspace, &result, &abserr);
+    gsl_integration_workspace_free(workspace);
+
+    if (status)
+    {
+        cerr << "thetaintegration failed at " << LINEINFO <<", pt=" << par->pt
+            << ", kt=" << kt <<", x1=" << par->x1 <<", x2=" << par->x2
+            <<", result=" << result
+            <<" relerr " << std::abs(abserr/result) << endl;
+    }
+
+    return 2.0*result;  // 2.0 from int. limits [0,2\pi] -> [0,\pi]
+    
+}
+
+REAL Inthelperf_dsigmadyd2pt_thetaint(REAL theta, void* p)
+{
+    Inthelper_dsigmadyd2pt* par = (Inthelper_dsigmadyd2pt*) p;
+    REAL costheta = std::cos(theta);
+    REAL ktpluspt = SQR(par->kt) + SQR(par->pt) + 2.0*par->kt*par->pt*costheta;
+    ktpluspt = std::sqrt(ktpluspt);
+    REAL ktminuspt = SQR(par->kt) + SQR(par->pt) - 2.0*par->kt*par->pt*costheta;
+    ktminuspt = std::sqrt(ktminuspt);
+    
+    REAL Q = std::max(ktpluspt/2.0, ktminuspt/2.0);
+    REAL ugd1 = par->N->UGD(ktpluspt/2.0, par->x1);
+    REAL ugd2 = par->N->UGD(ktminuspt/2.0, par->x2);
+
+    if (isnan(ugd1) or isnan(ugd2) or Q<1e-10)
+    {
+        cerr << "???\n";
+    }
+
+    return Alpha_s(SQR(Q))*ugd1*ugd2;
+}
+
+/*
+ * Rapidity distribution
+ * d\sigma/dy = \int d^2 pt dSigmadydp2t
+ */
+REAL Inthelperf_dsigmady(REAL pt, void* p);
+REAL AmplitudeLib::dSigmady(REAL y, REAL sqrts)
+{
+    REAL PTINTPOINTS = 400;
+    REAL PTINTACCURACY = 0.05;
+    
+    REAL minpt = 0;
+    REAL maxpt = 12;    // As in ref. 1011.5161
+
+    Inthelper_dsigmadyd2pt helper;
+    helper.N=this; helper.sqrts=sqrts; helper.y=y;
+
+    gsl_function fun;
+    fun.params = &helper;
+    fun.function = Inthelperf_dsigmadyd2pt;
+
+    gsl_integration_workspace *workspace 
+     = gsl_integration_workspace_alloc(PTINTPOINTS);
+
+    int status; REAL result, abserr;
+    status=gsl_integration_qag(&fun, minpt, maxpt,
+            0, PTINTACCURACY, PTINTPOINTS,
+            GSL_INTEG_GAUSS51, workspace, &result, &abserr);
+    gsl_integration_workspace_free(workspace);
+
+    if (status)
+    {
+        cerr << "p_T integration failed at " << LINEINFO 
+            << ", y=" << y <<", result=" << result
+            <<" relerr " << std::abs(abserr/result) << endl;
+    }
+
+    return 0;
+}
+
+REAL Inthelperf_dsigmady(REAL pt, void* p)
+{
+    Inthelper_dsigmadyd2pt* par = (Inthelper_dsigmadyd2pt*)p;
+    REAL x1 = pt/par->sqrts*std::exp(par->y);
+    REAL x2 = pt/par->sqrts*std::exp(-par->y);
+
+    return par->N->dSigmadyd2pt(pt, x1, x2);    
+
+}
+
+/*
+ * Load data from a given file
+ * Format is specified in file bk/README
+ */
 AmplitudeLib::AmplitudeLib(std::string datafile)
 {
     DataFile data(datafile);

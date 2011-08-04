@@ -107,14 +107,14 @@ REAL AmplitudeR::InitialCondition(REAL r, REAL b)
     if (ic == IPSAT)
     {
         const REAL Q_s0sqr = 0.24; // Fitted to HERA data at arXiv:0902.1112
-        if (r<1e-6) return SQR(r)*Q_s0sqr / 4.0 * std::exp( -SQR(b)/2 );
+        if (r<3e-6) return SQR(r)*Q_s0sqr / 4.0 * std::exp( -SQR(b)/2 );
         return 1.0 - std::exp(-SQR(r)*Q_s0sqr / 4.0 * std::exp( -SQR(b)/2 ) );
     }
     if (ic == AN06)
     {
         const REAL Q_s0sqr = 1.0;   // following arXiv:0704.0612, not fitted
         const REAL gamma = 0.6;
-        if (r<1e-6) return std::pow(SQR(r)*Q_s0sqr,gamma)/4.0;
+        if (r<1e-10) return std::pow(SQR(r)*Q_s0sqr,gamma)/4.0;
         return 1.0 - std::exp( -std::pow( SQR(r)*Q_s0sqr, gamma )/4.0 );
     }
     cerr << "Unkown initial condition set! " << LINEINFO << endl;
@@ -186,8 +186,10 @@ int AmplitudeR::ThetaPoints()
 
 REAL AmplitudeR::MinR()
 {
-    return 1e-7;  // kw
-    return 2e-8;
+    return 8e-7;  // kw ipsat
+    //return 5e-7;
+    //return 5e-8;    // balitsky ipsat
+    //return 1e-8;
     return 1e-9;
     //return 1e-5;
 }

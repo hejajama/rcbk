@@ -160,11 +160,11 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
                 REAL tmptheta = par->N->ThetaVal(thetaind);
                 /*cout << "tmpind " << tmpind << " maxrind "
                  << par->N->RPoints()-1 << " r=" << par->N->RVal(tmpind) <<
-                 " amplitude " << par->S->InterpolateN(tmplnr, 0, 0, amplitude) ;*/
-                
+                 " amplitude " << par->S->InterpolateN(tmplnr, 0, 0, amplitude) ;
+                */
                 dydt[tmpind] = par->S->RapidityDerivative(y, tmplnr, tmplnb, tmptheta,
                     amplitude, &interp);
-                //cout << " dydt " << dydt[tmpind] << endl;
+                //cout << " reldydt " << dydt[tmpind]/par->S->InterpolateN(tmplnr, 0, 0, amplitude) << endl;
                 
             }
         }
@@ -259,7 +259,7 @@ REAL Inthelperf_rint(REAL lnr, void* p)
 {
     Inthelper_rthetaint* par = (Inthelper_rthetaint*)p;
 
-    const int THETAINTPOINTS = 100;
+    const int THETAINTPOINTS = 400;
     const REAL THETAINTACCURACY = 0.05;
 
     par->lnr02=lnr;
@@ -339,7 +339,7 @@ REAL Inthelperf_thetaint(REAL theta, void* p)
         return result;
     }
 
-    ///TODO: use amplitude, not ln of it
+    ///TODO
     /*
     REAL r12sqr = std::exp(2.0*par->lnr01)+std::exp(2.0*par->lnr02)
         - 2.0*std::exp(par->lnr01+par->lnr02)*std::cos(theta);
@@ -381,7 +381,7 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
         REAL alphas_r02, REAL alphas_r12, REAL y,
         REAL theta2, REAL b01, REAL thetab)
 {
-    if (r12<N->MinR() or r02 < N->MinR())
+    if (r12<N->MinR()/10 or r02 < N->MinR()/10)
         return 0;
     REAL result=0;
 
@@ -409,7 +409,7 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
             );
             break;
         case KW:
-            if (std::abs(SQR(r02)-SQR(r12)) < 1e-50) return 0;
+            if (std::abs(SQR(r02)-SQR(r12)) < SQR(N->MinR())/1000) return 0;
 
             costheta2 = std::cos(theta2);
             r02dotr12 = SQR(r02) - r02*r01*costheta2;
@@ -430,7 +430,10 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
                 (SQR(r02)+SQR(r12))/(SQR(r02)-SQR(r12))
                     - 2.0*SQR(r02)*SQR(r12)/(r02dotr12*(SQR(r02)-SQR(r12)) )
                 );
-            if (Rsqr<N->MinR()) return 0;
+            /*if (std::abs(r02-r12) < 1e-3 and std::abs(r02-r12)>1e-5)
+                cout << "r1 " << r02 << " r2 " << r12 << " theta " << theta2 << " Rsqr " <<
+                Rsqr << " exp " << r02*r12*std::exp(-1.0+1.0/costheta2) << endl;*/
+            if (Rsqr<1e-50) return 0;
 
             result = Nc/(2.0*SQR(M_PI)) * (
                 alphas_r02 / SQR(r02)
@@ -438,7 +441,7 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
                  * r02dotr12 / (SQR(r02)*SQR(r12) )
                 + alphas_r12 / SQR(r12)
                 );
-            if (result<-1e-3)
+            /*if (result<-1e-3)
             cout << "r01 " << r01 << " r02 " << r02 << " r12 " << r12 << " Rsqr " << Rsqr
                 << " bal " << Nc/(2.0*SQR(M_PI))*alphas_r01
             * (
@@ -447,7 +450,7 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
             + 1.0/SQR(r12)*(alphas_r12/alphas_r02 - 1.0)
             )
             << " kw " << result << endl;
-
+            */
             break;
         case MS:
             // Motyka & Staśto, 0901.4949: kinematical constraint, bessel kernel

@@ -13,7 +13,7 @@
 enum InitialConditionR
 {
     IPSAT,
-    AN06    // ref e.g. 0704.012, 1_exp(-(rQ_s)^(2\gamma)/4)
+    AN06,    // ref e.g. 0704.012, 1_exp(-(rQ_s)^(2\gamma)/4)
 };
 
 // AmplitudeR::Initialize() must be called before this class is used, but first

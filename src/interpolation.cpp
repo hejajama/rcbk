@@ -146,7 +146,7 @@ REAL Interpolator::Derivative(REAL x)
 
 REAL Interpolator::Derivative2(REAL x)
 {
-    REAL res; int status;
+    REAL res; int status=0;
     switch(method)
     {
         case INTERPOLATE_SPLINE:
@@ -156,6 +156,12 @@ REAL Interpolator::Derivative2(REAL x)
             cerr << "2nd derivative is not implemented for BSPLINE interpolation!"
             << " " << LINEINFO << endl;
             break;
+    }
+
+    if (status)
+    {
+        cerr << "2nd derivative interpolation failed at x=" << x <<", result "
+        << res << " " << LINEINFO << endl;
     }
     return res;
 
