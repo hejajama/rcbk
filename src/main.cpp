@@ -23,15 +23,17 @@ int main(int argc, char* argv[])
     std::string output="output.dat";
     RunningCoupling rc=CONSTANT;
     REAL alphas_scaling=1.0;
-    InitialConditionR ic = IPSAT;
+    InitialConditionR ic = GBW;
+    REAL minr = 1e-9;
     
     if (argc>1)  if (string(argv[1])=="-help")
     {
         cout << "Usage: " << endl;
         cout << "-maxy y: set max rapidity" << endl;
+        cout << "-minr minr: set smallest dipole size for the grid" << endl;
         cout << "-output file: save output to given file" << endl;
         cout << "-rc [CONSTANT,PARENT,BALITSKY,KW,MS]: set RC prescription" << endl;
-        cout << "-ic [IPSAT, AN06]: set initial condition" << endl;
+        cout << "-ic [GBW, MV, AN06]: set initial condition" << endl;
         cout << "-alphas_scaling factor: scale \\lambdaQCD^2 by given factor" << endl;
         cout << "-ystep step: set rapidity step size" << endl;
     }
@@ -66,19 +68,24 @@ int main(int argc, char* argv[])
         }
         else if (string(argv[i])=="-ic")
         {
-            if (string(argv[i+1])=="IPSAT")
-                ic = IPSAT;
+            if (string(argv[i+1])=="GBW")
+                ic = GBW;
+            else if (string(argv[i+1])=="MV")
+                ic = MV;
             else if (string(argv[i+1])=="AN06")
                 ic = AN06;
             else
             {
                 cerr << "Unknown initial condition " << argv[i+1] << endl;
+                return -1;
             }
         }
         else if (string(argv[i])=="-alphas_scaling")
             alphas_scaling = StrToReal(argv[i+1]);
         else if (string(argv[i])=="-ystep")
             dy = StrToReal(argv[i+1]);
+        else if (string(argv[i])=="-minr")
+            minr = StrToReal(argv[i+1]);
         else if (string(argv[i]).substr(0,1)=="-")
         {
             cerr << "Unrecoginzed parameter " << argv[i] << endl;
@@ -88,6 +95,7 @@ int main(int argc, char* argv[])
     
     AmplitudeR N;
     N.SetInitialCondition(ic);
+    N.SetMinR(minr);
     N.Initialize();
     Solver s(&N);
     s.SetRunningCoupling(rc);
@@ -110,10 +118,12 @@ int main(int argc, char* argv[])
         infostr << "# Scaling factor in alpha_s: " << alphas_scaling << endl;
     
     infostr << "# Initial condition is ";
-    if (ic==IPSAT)
-        infostr << "IPSAT 1-exp(-r^2Q_s^2/4)";
+    if (ic==GBW)
+        infostr << "GBW 1-exp(-r^2Q_s^2/4)";
+    else if (ic == MV)
+        infostr << "MV 1-exp(-(r^2 Q_s^2/4)^\\gamma log(1/r\\lambda_QCD + e) )";
     else if (ic==AN06)
-        infostr << "AN06 1-exp(-(r^2Q_s^2)^\\gamma/4";
+        infostr << "AN06 1-exp(-(r^2Q_s^2)^\\gamma/4)";
     infostr << endl;
 
     infostr << "# Solving BK equation up to y=" << maxy << endl;

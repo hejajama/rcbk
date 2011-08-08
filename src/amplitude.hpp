@@ -12,8 +12,9 @@
 
 enum InitialConditionR
 {
-    IPSAT,
-    AN06,    // ref e.g. 0704.012, 1_exp(-(rQ_s)^(2\gamma)/4)
+    GBW,    // ref 0902.1112, no anomalous dimension
+    MV,     // ref 0902.1112, anomalous dimension
+    AN06    // ref e.g. 0704.012, 1_exp(-(rQ_s)^(2\gamma)/4)
 };
 
 // AmplitudeR::Initialize() must be called before this class is used, but first
@@ -52,6 +53,8 @@ public:
     REAL MaxLnR();
     REAL MinLnR();
     REAL RMultiplier();
+
+    void SetMinR(REAL minr_);
     
     // Initial condition dependent \\alpha_s
     REAL Alpha_s_ic(REAL rsqr, REAL scaling=1.0);
@@ -84,6 +87,7 @@ private:
     REAL alphas_scaling;
     REAL Cfactorsqr;   // \alpha_s \sim 1/log(C^2/(r^2\lambdaqcd^2))
     REAL maxalphas;
+    REAL minr;
 };
 
 const REAL MINLN_N = -999;

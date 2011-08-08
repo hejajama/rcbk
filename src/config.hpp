@@ -31,8 +31,8 @@ const REAL e = sqrt(4.0*M_PI*ALPHA_e);
 // Reqularization of the running coupling
 // Berger&Stasto 1010.0671: 0.3
 // Fit to HERA: 0.7 0902.1112
- const REAL MAXALPHA = 0.7;  
-//const REAL MAXALPHA = 0.5;  // 0704.0612
+//const REAL MAXALPHA = 0.7;  
+const REAL MAXALPHA = 0.5;  // 0704.0612
 const REAL ALPHABAR_s = 0.2;       // \alphabar_s if RC=constant
 
 // Other constants

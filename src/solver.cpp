@@ -160,8 +160,8 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
                 REAL tmptheta = par->N->ThetaVal(thetaind);
                 /*cout << "tmpind " << tmpind << " maxrind "
                  << par->N->RPoints()-1 << " r=" << par->N->RVal(tmpind) <<
-                 " amplitude " << par->S->InterpolateN(tmplnr, 0, 0, amplitude) ;
-                */
+                 " amplitude " << par->S->InterpolateN(tmplnr, 0, 0, amplitude) ;*/
+                
                 dydt[tmpind] = par->S->RapidityDerivative(y, tmplnr, tmplnb, tmptheta,
                     amplitude, &interp);
                 //cout << " reldydt " << dydt[tmpind]/par->S->InterpolateN(tmplnr, 0, 0, amplitude) << endl;
@@ -259,7 +259,7 @@ REAL Inthelperf_rint(REAL lnr, void* p)
 {
     Inthelper_rthetaint* par = (Inthelper_rthetaint*)p;
 
-    const int THETAINTPOINTS = 400;
+    const int THETAINTPOINTS = 800;
     const REAL THETAINTACCURACY = 0.05;
 
     par->lnr02=lnr;
@@ -290,11 +290,13 @@ REAL Inthelperf_rint(REAL lnr, void* p)
             maxtheta, 0, THETAINTACCURACY, THETAINTPOINTS,
             GSL_INTEG_GAUSS51, workspace, &result, &abserr);
     gsl_integration_workspace_free(workspace);
-    if (status and std::abs(result)>1e-3)   ///TODO: Fails at small r2 if r0 \approx 1
+    if (status and std::abs(result)>1e-3) 
     {
-        cerr << "Thetaint failed at " << LINEINFO <<": r=" << std::exp(lnr) 
-            << " n01 " << par->n01 <<
-            " result " << result << " relerr " << std::abs(abserr/result) << endl;
+        if (! (std::exp(par->lnr01) > 0.1 and std::exp(lnr) < 1e-5) )
+            #pragma omp critical
+            cerr << "Thetaint failed at " << LINEINFO <<": r=" << std::exp(lnr) 
+                << " n01 " << par->n01 << " r01 " << std::exp(par->lnr01) <<
+                " result " << result << " relerr " << std::abs(abserr/result) << endl;
     }
 
     result *= std::exp(2.0*lnr);        // Change of variables r->ln r

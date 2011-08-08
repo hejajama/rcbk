@@ -190,7 +190,7 @@ REAL AmplitudeLib::UGD(REAL k, REAL y)
     if (k < UGD_IR_CUTOFF) return 0;
     
     set_fpu_state();
-    init_workspace_fourier(1500);   // number of bessel zeroes, max 2000
+    init_workspace_fourier(500);   // number of bessel zeroes, max 2000
 
     UGDHelper par;
     par.y=y; par.N=this; 

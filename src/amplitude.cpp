@@ -12,7 +12,8 @@ AmplitudeR::AmplitudeR()
 {
     bdep=false;
     alphas_scaling=1.0;
-    SetInitialCondition(IPSAT);
+    minr=1e-9;
+    SetInitialCondition(GBW);
     
 }
 
@@ -104,11 +105,23 @@ int AmplitudeR::AddRapidity(REAL y)
 
 REAL AmplitudeR::InitialCondition(REAL r, REAL b)
 {
-    if (ic == IPSAT)
+    if (ic == GBW)
     {
         const REAL Q_s0sqr = 0.24; // Fitted to HERA data at arXiv:0902.1112
         if (r<3e-6) return SQR(r)*Q_s0sqr / 4.0 * std::exp( -SQR(b)/2 );
         return 1.0 - std::exp(-SQR(r)*Q_s0sqr / 4.0 * std::exp( -SQR(b)/2 ) );
+    }
+    if (ic == MV)
+    {   // same ref as for GBW
+        const REAL Q_s0sqr = 0.15;
+        const REAL anomalous_dimension = 1.13;
+        const REAL e = 2.7182818;
+        if (r < 2e-6)
+            return std::pow(SQR(r)*Q_s0sqr/4.0, anomalous_dimension)
+            * std::log( 1.0/(r*std::sqrt(lambdaqcd2)) + e);
+        return 1.0 - std::exp(-std::pow(SQR(r)*Q_s0sqr/4.0, anomalous_dimension)
+            * std::log( 1.0/(r*std::sqrt(lambdaqcd2)) + e) );
+
     }
     if (ic == AN06)
     {
@@ -186,11 +199,13 @@ int AmplitudeR::ThetaPoints()
 
 REAL AmplitudeR::MinR()
 {
-    return 8e-7;  // kw ipsat
-    //return 5e-7;
-    //return 5e-8;    // balitsky ipsat
+    return minr;
+    //return 2e-6;  // kw mv
+    //return 8e-7;  // kw gbw
+    //return 5e-7;  // balitsky mv
+    //return 5e-8;    // balitsky gbw
     //return 1e-8;
-    return 1e-9;
+    //return 1e-9;
     //return 1e-5;
 }
 
@@ -270,7 +285,8 @@ void AmplitudeR::SetInitialCondition(InitialConditionR ic_)
     ic=ic_;
     switch(ic)
     {
-        case IPSAT:
+        case GBW:
+        case MV:
             // Values from the fit to the HERA data 0902.1112
             lambdaqcd2=0.241*0.241;
             Cfactorsqr=4.0;
@@ -296,4 +312,17 @@ void AmplitudeR::SetAlphasScaling(REAL scaling)
     alphas_scaling=scaling;
 }
 
-
+/*
+ * Set smallest r for the grid
+ * Must be set before Initialize() is called!
+ */
+void AmplitudeR::SetMinR(REAL minr_)
+{
+    if (rvals.size()!=0)
+    {
+        cerr << "SetMinR() called after AmplitudeR::Initialize() is called, "
+        << "can't do anything... " << LINEINFO << endl;
+        return;
+    }
+    minr=minr_;
+}
