@@ -14,6 +14,8 @@ enum InitialConditionR
 {
     GBW,    // ref 0902.1112, no anomalous dimension
     MV,     // ref 0902.1112, anomalous dimension
+    MV1,    // ref 0902.1112, same as MV but w.o. anomalous dimension
+            //    no fitted parameters
     AN06    // ref e.g. 0704.012, 1_exp(-(rQ_s)^(2\gamma)/4)
 };
 

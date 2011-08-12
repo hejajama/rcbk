@@ -19,8 +19,12 @@ class AmplitudeLib
         // der w.r.t r der times.
         REAL N(REAL r, REAL y, int der=0);
         
-        // Amplitude in k-space 
+        // Amplitude in k-space, ft with 1/r^2 prefactor
         REAL N_k(REAL kt, REAL y);
+
+        // Regular ft to k-space for S=1-N, normalization factor 1/(2\pi)^2
+        REAL S_k(REAL kt, REAL y);
+        
 
         // Unintegrated gluon density
         REAL UGD(REAL k, REAL y);
@@ -30,6 +34,7 @@ class AmplitudeLib
         //   * \psi(|p_t-k_T|/2, x2)
         REAL dSigmadyd2pt(REAL pt, REAL x1, REAL x2);
         REAL dSigmady(REAL y, REAL sqrts);
+        REAL dSigmady_mc(REAL y, REAL sqrts);
 
         // d ln N / d ln r^2
         REAL LogLogDerivative(REAL r, REAL y);
@@ -37,7 +42,7 @@ class AmplitudeLib
         // Saturation scale N(r, y) = Ns
         REAL SaturationScale(REAL y, REAL Ns);
 
-        void InitializeInterpoaltion(REAL y);
+        void InitializeInterpolation(REAL y);
     
         int YVals();
         int RPoints();

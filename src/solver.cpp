@@ -456,7 +456,8 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
             break;
         case MS:
             // Motyka & Staśto, 0901.4949: kinematical constraint, bessel kernel
-            z = std::exp(-y); zsqrt = std::exp(-0.5*y);
+            ///FIXME: 0.01 factor????
+            z = 0.01*std::exp(-y); zsqrt = std::exp(-0.5*y);
 
             // r02 dot r12
             costheta2 = std::cos(theta2);

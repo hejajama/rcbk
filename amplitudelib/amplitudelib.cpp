@@ -11,6 +11,12 @@
 #include <cmath>
 #include <gsl/gsl_roots.h>
 #include <gsl/gsl_integration.h>
+#include <gsl/gsl_monte.h>
+#include <gsl/gsl_monte_plain.h>
+#include <gsl/gsl_monte_miser.h>
+#include <gsl/gsl_sf_bessel.h>
+
+
 #include <algorithm>
 
 
@@ -103,7 +109,7 @@ REAL AmplitudeLib::N(REAL r, REAL y, int der)
         tmparray[i-interpolation_start] = n[yind][i];
 
         // Interpolate in y if possible
-		if (yind < yvals.size()-1 )
+		if (yind < static_cast<int>(yvals.size()-1) )
         {
             tmparray[i-interpolation_start]=n[yind][i] 
                 + (y - yvals[yind]) * (n[yind+1][i] - n[yind][i])
@@ -166,6 +172,40 @@ REAL N_k_helperf(REAL r, void* p)
     if (r < par->N->MinR()) return 0;
     else if (r > par->N->MaxR()) return 1.0/r;
     return 1.0/r*par->N->N(r, par->y);
+}
+
+
+/*
+ * FT S=1-N to the k-space
+ * S(k) = \int d^2 r/(2\pi)^2 exp(ik.r) (1-N(r))
+ *  = (2\pi)^{-1} \int dr r BesselJ[0,k*r] * (1-N(r))
+ * 
+ * Note: for performance reasons it is probably a good idea to
+ * call AmplitudeLib::InitializeInterpolation(y) before this
+ */
+REAL S_k_helperf(REAL r, void* p);
+REAL AmplitudeLib::S_k(REAL kt, REAL y)
+{
+    // Some initialisation stuff -
+    set_fpu_state();
+    init_workspace_fourier(700);   // number of bessel zeroes, max 2000
+    
+    N_k_helper par;
+    par.y=y; par.N=this; par.kt=kt;
+    REAL result = fourier_j0(kt,S_k_helperf,&par);
+    return result;
+}
+
+REAL S_k_helperf(REAL r, void* p)
+{
+    N_k_helper* par = (N_k_helper*) p;
+    if (r < par->N->MinR()) return r/(2.0*M_PI);
+    else if (r > par->N->MaxR()) return 0;
+    REAL result = r*(1.0-par->N->N(r, par->y)) / (2.0*M_PI);
+
+    if (isnan(result) or isinf(result))
+        cerr << "Result is nan at r=" << r <<", k=" << par->kt << endl;
+    return result;
 }
 
 /*
@@ -375,6 +415,65 @@ REAL Inthelperf_dsigmady(REAL pt, void* p)
 }
 
 /*
+ * d\sigma/dy, monte carlo integration
+ */
+
+// x[0]=p, x[1]=k, x[2]=theta
+REAL Inthelperf_dsigmadymc(REAL* x, size_t dim, void* p)
+{
+    Inthelper_dsigmadyd2pt* par = (Inthelper_dsigmadyd2pt*)p;
+    if (x[1]>x[0])  return 0;
+    
+
+    REAL x1 = x[0]/par->sqrts*std::exp(par->y);
+    REAL x2 = x[0]/par->sqrts*std::exp(-par->y);
+    REAL costheta = std::cos(x[2]);
+    REAL ktpluspt = SQR(x[1]) + SQR(x[0]) + 2.0*x[1]*x[0]*costheta;
+    ktpluspt = std::sqrt(ktpluspt);
+    REAL ktminuspt = SQR(x[1]) + SQR(x[0]) - 2.0*x[1]*x[0]*costheta;
+    ktminuspt = std::sqrt(ktminuspt);
+    
+    REAL Q = std::max(ktpluspt/2.0, ktminuspt/2.0);
+    REAL ugd1 = par->N->UGD(ktpluspt/2.0, x1);
+    REAL ugd2 = par->N->UGD(ktminuspt/2.0, x2);
+
+    return 1.0/x[0]*x[1]*Alpha_s(SQR(Q))*ugd1*ugd2;
+    
+}
+ 
+REAL AmplitudeLib::dSigmady_mc(REAL y, REAL sqrts)
+{
+    REAL maxpt = 12;    // As in ref. 1011.5161
+
+    REAL lower[3] = {1e-8, 1e-8, 0};
+    REAL upper[3] = {maxpt, maxpt, 2*M_PI};
+    Inthelper_dsigmadyd2pt helper;
+    helper.N=this; helper.y=y; helper.sqrts=sqrts;
+
+    REAL res,err;
+    
+    const gsl_rng_type *T;
+    gsl_rng *r;
+     
+    gsl_monte_function G = { &Inthelperf_dsigmadymc, 3, &helper };
+     
+    size_t calls = 500;
+     
+    gsl_rng_env_setup ();
+     
+    T = gsl_rng_default;
+    r = gsl_rng_alloc (T);
+
+    gsl_monte_miser_state *s = gsl_monte_miser_alloc (3);
+    gsl_monte_miser_integrate (&G, lower, upper, 3, calls, r, s, 
+                               &res, &err);
+    gsl_monte_miser_free (s);
+
+    return res;
+
+}
+
+/*
  * Load data from a given file
  * Format is specified in file bk/README
  */
@@ -474,7 +573,7 @@ REAL AmplitudeLib::SaturationScale(REAL y, REAL Ns)
 /*
  * Initializes interpolation method with all read data points at given y
  */
-void AmplitudeLib::InitializeInterpoaltion(REAL y)
+void AmplitudeLib::InitializeInterpolation(REAL y)
 {
     if (interpolator_y>=0)
     {

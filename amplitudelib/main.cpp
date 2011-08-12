@@ -4,7 +4,6 @@
  */
 
 #include "../src/tools.hpp"
-#include "ugd.hpp"
 #include "amplitudelib.hpp"
 #include <iostream>
 #include <gsl/gsl_errno.h>
@@ -79,7 +78,7 @@ int main(int argc, char* argv[])
 
     cout << "# Reading data from file " << datafile << endl;
     AmplitudeLib N(datafile);
-    N.InitializeInterpoaltion(y);
+    N.InitializeInterpolation(y);
     cout << "# y = " << y << endl;
 
     if (mode==K)
@@ -122,7 +121,7 @@ int main(int argc, char* argv[])
         REAL mink=0.3; REAL maxk=20;
         int kpoints=250;
         REAL kmultiplier = std::pow(maxk/mink, 1.0/(kpoints-1.0));
-        cout << "# UGD" << endl << "# k_T [GeV]   UGD" << endl;
+        cout << "# UGD" << endl << "# k_T [GeV]   UGD   \\alpha_s(k)" << endl;
         #pragma omp parallel for schedule(dynamic, 5)
         for (int kind=0; kind<kpoints; kind++)
         {
@@ -130,7 +129,7 @@ int main(int argc, char* argv[])
             REAL result = N.UGD(tmpk, y);
             #pragma omp critical
             {
-                cout << tmpk << " " << result << endl;
+                cout << tmpk << " " << result << " " << Alpha_s(SQR(tmpk)) <<endl;
             }
         }
     }
@@ -145,7 +144,7 @@ int main(int argc, char* argv[])
         for (int yind=0; yind<=ypoints; yind++)
         {
             REAL tmpy = miny + (maxy-miny)/ypoints*yind;
-            REAL result = N.dSigmady(y, 200);
+            REAL result = N.dSigmady_mc(y, 200);
             //REAL result = N.dSigmadyd2pt(3, 3.0/200.0*std::exp(tmpy), 3.0/200.0*std::exp(-tmpy));
             #pragma omp critical
             {

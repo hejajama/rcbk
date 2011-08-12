@@ -22,6 +22,7 @@ typedef unsigned int uint;
 // Physical constants
 //const REAL LAMBDAQCD2 = 0.21416*0.21416;   // GeV^2
 const REAL LAMBDAQCD2 = 0.241*0.241;    // 0902.1112
+const REAL LAMBDAQCD = 0.241;
 //const REAL LAMBDAQCD2 = 0.2*0.2;    // 0704.0612, AN06 model
 const int Nf=3;
 const int Nc=3;

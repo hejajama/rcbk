@@ -12,15 +12,26 @@
 #include <sstream>
 #include <fstream>
 #include <iomanip>
+#include <csignal>
+
 
 const std::string version = "v. 0.1  2011-xx-xx";
+
+// We need global variables so that the singla handler works
+std::string output="output.dat";
+std::stringstream infostr;
+AmplitudeR* N;
+
+void SaveData();
+void SigIntHandler(int param);
 
 int main(int argc, char* argv[])
 {
     gsl_set_error_handler(&ErrHandler);
+    std::signal(SIGINT, SigIntHandler);
+    
     REAL maxy=1;
     REAL dy = 0.2;  // ystep
-    std::string output="output.dat";
     RunningCoupling rc=CONSTANT;
     REAL alphas_scaling=1.0;
     InitialConditionR ic = GBW;
@@ -33,7 +44,7 @@ int main(int argc, char* argv[])
         cout << "-minr minr: set smallest dipole size for the grid" << endl;
         cout << "-output file: save output to given file" << endl;
         cout << "-rc [CONSTANT,PARENT,BALITSKY,KW,MS]: set RC prescription" << endl;
-        cout << "-ic [GBW, MV, AN06]: set initial condition" << endl;
+        cout << "-ic [GBW, MV, MV1, AN06]: set initial condition" << endl;
         cout << "-alphas_scaling factor: scale \\lambdaQCD^2 by given factor" << endl;
         cout << "-ystep step: set rapidity step size" << endl;
     }
@@ -72,6 +83,8 @@ int main(int argc, char* argv[])
                 ic = GBW;
             else if (string(argv[i+1])=="MV")
                 ic = MV;
+            else if (string(argv[i+1])=="MV1")
+                ic = MV1;
             else if (string(argv[i+1])=="AN06")
                 ic = AN06;
             else
@@ -93,16 +106,15 @@ int main(int argc, char* argv[])
         }
     }
     
-    AmplitudeR N;
-    N.SetInitialCondition(ic);
-    N.SetMinR(minr);
-    N.Initialize();
-    Solver s(&N);
+    N = new AmplitudeR();
+    N->SetInitialCondition(ic);
+    N->SetMinR(minr);
+    N->Initialize();
+    Solver s(N);
     s.SetRunningCoupling(rc);
     s.SetAlphasScaling(alphas_scaling);
     s.SetDeltaY(dy);
 
-    std::stringstream infostr;
     infostr << "#";
     for (int i=0; i<argc; i++)
         infostr << argv[i] << " ";
@@ -122,18 +134,30 @@ int main(int argc, char* argv[])
         infostr << "GBW 1-exp(-r^2Q_s^2/4)";
     else if (ic == MV)
         infostr << "MV 1-exp(-(r^2 Q_s^2/4)^\\gamma log(1/r\\lambda_QCD + e) )";
+    else if (ic == MV1)
+        infostr << "MV 1-exp(-r^2 Q_s^2/4 log(1/r\\lambda_QCD + e) )";
     else if (ic==AN06)
         infostr << "AN06 1-exp(-(r^2Q_s^2)^\\gamma/4)";
     infostr << endl;
 
     infostr << "# Solving BK equation up to y=" << maxy << endl;
-    infostr << "# r limits: " << N.MinR() << " - " << N.MaxR() << " points "
-    << N.RPoints() << " multiplier " << N.RMultiplier() << endl;
+    infostr << "# r limits: " << N->MinR() << " - " << N->MaxR() << " points "
+    << N->RPoints() << " multiplier " << N->RMultiplier() << endl;
     infostr << "# maxy " << maxy << " ystep " << dy << endl;
     cout << infostr.str() ;
 
     s.Solve(maxy);
 
+    SaveData();
+
+    cout << "# Done!" << endl;
+
+    delete N;
+    return 0;
+}
+
+void SaveData()
+{
     cout << "Saving data in file " << output << endl;
 
     /*
@@ -145,23 +169,33 @@ int main(int argc, char* argv[])
     out.open(output.c_str());
     out << infostr.str();
 
-    out << "###" << std::scientific << std::setprecision(15) << N.MinR() << endl;
+    out << "###" << std::scientific << std::setprecision(15) << N->MinR() << endl;
     out << "###" << std::scientific << std::setprecision(15) <<
-        N.RMultiplier()  << endl;
-    out << "###" << N.RPoints() << endl;
+        N->RMultiplier()  << endl;
+    out << "###" << N->RPoints() << endl;
 
-    for (int yind=0; yind<N.YPoints(); yind++)
+    for (int yind=0; yind<N->YPoints(); yind++)
     {
         out << "###" << std::scientific << std::setprecision(15)
-            << N.YVal(yind) << endl;
-        for (int rind=0; rind<N.RPoints(); rind++)
+            << N->YVal(yind) << endl;
+        for (int rind=0; rind<N->RPoints(); rind++)
         {
             out << std::scientific << std::setprecision(15)
-                << N.Ntable(yind, rind) << endl;
+                << N->Ntable(yind, rind) << endl;
         }
     }
     out.close();
+}
 
+// User pressed ctrl+c or killed the program, save data
+void SigIntHandler(int param)
+{
+    cerr << endl << "# Received SigInt signal, trying to save data..." << endl;
+    infostr << "# Received SigInt signal, trying to save data..." << endl;
 
-    return 0;
+    SaveData();
+
+    delete N;
+
+    exit(1);
 }

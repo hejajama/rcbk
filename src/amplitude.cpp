@@ -123,6 +123,17 @@ REAL AmplitudeR::InitialCondition(REAL r, REAL b)
             * std::log( 1.0/(r*std::sqrt(lambdaqcd2)) + e) );
 
     }
+    if (ic == MV1)
+    {
+        // Same as previoius but w.o. anomalous dimension
+        const REAL Q_s0sqr = 2;   // same as in ref. 0708.0231 (or is it??)
+        const REAL e = 2.7182818;
+        if (r < 2e-6)
+            return SQR(r)*Q_s0sqr/4.0
+                * std::log( 1.0/(r*std::sqrt(lambdaqcd2)) + e);
+        return 1.0 - std::exp(-SQR(r)*Q_s0sqr/4.0
+            * std::log( 1.0/(r*std::sqrt(lambdaqcd2)) + e) );
+    }
     if (ic == AN06)
     {
         const REAL Q_s0sqr = 1.0;   // following arXiv:0704.0612, not fitted
@@ -287,6 +298,7 @@ void AmplitudeR::SetInitialCondition(InitialConditionR ic_)
     {
         case GBW:
         case MV:
+        case MV1:
             // Values from the fit to the HERA data 0902.1112
             lambdaqcd2=0.241*0.241;
             Cfactorsqr=4.0;
