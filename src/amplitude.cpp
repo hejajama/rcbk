@@ -14,6 +14,7 @@ AmplitudeR::AmplitudeR()
     alphas_scaling=1.0;
     minr=1e-9;
     SetInitialCondition(GBW);
+    Q_s0sqr=0;
     
 }
 
@@ -107,13 +108,13 @@ REAL AmplitudeR::InitialCondition(REAL r, REAL b)
 {
     if (ic == GBW)
     {
-        const REAL Q_s0sqr = 0.24; // Fitted to HERA data at arXiv:0902.1112
+        Q_s0sqr = 0.24; // Fitted to HERA data at arXiv:0902.1112
         if (r<3e-6) return SQR(r)*Q_s0sqr / 4.0 * std::exp( -SQR(b)/2 );
         return 1.0 - std::exp(-SQR(r)*Q_s0sqr / 4.0 * std::exp( -SQR(b)/2 ) );
     }
     if (ic == MV)
     {   // same ref as for GBW
-        const REAL Q_s0sqr = 0.15;
+        Q_s0sqr = 0.15;
         const REAL anomalous_dimension = 1.13;
         const REAL e = 2.7182818;
         if (r < 2e-6)
@@ -126,7 +127,7 @@ REAL AmplitudeR::InitialCondition(REAL r, REAL b)
     if (ic == MV1)
     {
         // Same as previoius but w.o. anomalous dimension
-        const REAL Q_s0sqr = 2;   // same as in ref. 0708.0231 (or is it??)
+        Q_s0sqr = 1.3;//1.0/M_PI;   // same as in ref. 0708.0231 (or is it??)
         const REAL e = 2.7182818;
         if (r < 2e-6)
             return SQR(r)*Q_s0sqr/4.0
@@ -136,7 +137,7 @@ REAL AmplitudeR::InitialCondition(REAL r, REAL b)
     }
     if (ic == AN06)
     {
-        const REAL Q_s0sqr = 1.0;   // following arXiv:0704.0612, not fitted
+        Q_s0sqr = 1.0;   // following arXiv:0704.0612, not fitted
         const REAL gamma = 0.6;
         if (r<1e-10) return std::pow(SQR(r)*Q_s0sqr,gamma)/4.0;
         return 1.0 - std::exp( -std::pow( SQR(r)*Q_s0sqr, gamma )/4.0 );
@@ -337,4 +338,9 @@ void AmplitudeR::SetMinR(REAL minr_)
         return;
     }
     minr=minr_;
+}
+
+REAL AmplitudeR::InitialSaturationScaleSqr()
+{
+    return Q_s0sqr;
 }

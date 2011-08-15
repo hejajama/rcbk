@@ -139,6 +139,8 @@ int main(int argc, char* argv[])
     else if (ic==AN06)
         infostr << "AN06 1-exp(-(r^2Q_s^2)^\\gamma/4)";
     infostr << endl;
+    infostr <<"# Initial saturation scale Q_s^2=" << N->InitialSaturationScaleSqr()
+        << " GeV^2" << endl;
 
     infostr << "# Solving BK equation up to y=" << maxy << endl;
     infostr << "# r limits: " << N->MinR() << " - " << N->MaxR() << " points "

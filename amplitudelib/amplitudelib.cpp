@@ -49,7 +49,7 @@ REAL AmplitudeLib::N(REAL r, REAL y, int der)
 
     if (y<0 or y>yvals[yvals.size()-1] )
     {
-        cerr << "r must be between limits [" << 0 << ", "
+        cerr << "y must be between limits [" << 0 << ", "
             << yvals[yvals.size()-1] << "], asked y=" << y << " "
             << LINEINFO << endl;
         return 0;
@@ -204,7 +204,8 @@ REAL S_k_helperf(REAL r, void* p)
     REAL result = r*(1.0-par->N->N(r, par->y)) / (2.0*M_PI);
 
     if (isnan(result) or isinf(result))
-        cerr << "Result is nan at r=" << r <<", k=" << par->kt << endl;
+        cerr << "Result is " << result << " at r=" << r <<", k=" << par->kt << " "
+         << LINEINFO << endl;
     return result;
 }
 
@@ -578,6 +579,7 @@ void AmplitudeLib::InitializeInterpolation(REAL y)
     if (interpolator_y>=0)
     {
         delete interpolator;
+        /// Todo: Did that delete line just free tmpnarray[] and tmprarray[]?
     }
     for (int i=0; i<rpoints; i++)
     {

@@ -17,12 +17,13 @@
  */
 int Interpolator::Initialize()
 {
+    int status=0;
     switch(method)
     {
         case INTERPOLATE_SPLINE:
             acc = gsl_interp_accel_alloc();
             spline = gsl_spline_alloc(gsl_interp_cspline, points);
-            gsl_spline_init(spline, xdata, ydata, points);
+            status = gsl_spline_init(spline, xdata, ydata, points);
             break;
         case INTERPOLATE_BSPLINE:
             gsl_vector *x = gsl_vector_alloc(points);
@@ -78,6 +79,11 @@ int Interpolator::Initialize()
             break;
     }
     ready=true;
+    if (status)
+    {
+        cerr << "Interpolator initialization failed at " << LINEINFO << endl;
+        return -1;
+    }
     return 0;   //ok, there is no error handling at the moment...
 }
 

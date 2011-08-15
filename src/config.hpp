@@ -26,6 +26,7 @@ const REAL LAMBDAQCD = 0.241;
 //const REAL LAMBDAQCD2 = 0.2*0.2;    // 0704.0612, AN06 model
 const int Nf=3;
 const int Nc=3;
+const REAL Cf = (Nc*Nc-1.0)/(2.0*Nc);
 const REAL ALPHA_e = 1.0/137.035999679; 
 const REAL e = sqrt(4.0*M_PI*ALPHA_e);
 
@@ -34,7 +35,8 @@ const REAL e = sqrt(4.0*M_PI*ALPHA_e);
 // Fit to HERA: 0.7 0902.1112
 //const REAL MAXALPHA = 0.7;  
 const REAL MAXALPHA = 0.5;  // 0704.0612
-const REAL ALPHABAR_s = 0.2;       // \alphabar_s if RC=constant
+const REAL ALPHABAR_s = 0.05;       // \alphabar_s if RC=constant
+const REAL ALPHAS = 0.2;    // compare with ALPHABAR_s.... ok, doesn't make sense
 
 // Other constants
 

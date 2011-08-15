@@ -72,6 +72,8 @@ public:
     
     void SetAlphasScaling(REAL scaling);
 
+    REAL InitialSaturationScaleSqr();
+
 
     // amplitude[yind][rind][bind][thetaind]
     std::vector < std::vector< std::vector< std::vector<REAL> > > > n;
@@ -90,6 +92,7 @@ private:
     REAL Cfactorsqr;   // \alpha_s \sim 1/log(C^2/(r^2\lambdaqcd^2))
     REAL maxalphas;
     REAL minr;
+    REAL Q_s0sqr;    // Initial saturation scale sqr
 };
 
 const REAL MINLN_N = -999;
