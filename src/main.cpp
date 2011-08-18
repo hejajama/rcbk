@@ -36,6 +36,7 @@ int main(int argc, char* argv[])
     REAL alphas_scaling=1.0;
     InitialConditionR ic = GBW;
     REAL minr = 1e-9;
+    bool bfkl=false;
     
     if (argc>1)  if (string(argv[1])=="-help")
     {
@@ -47,6 +48,7 @@ int main(int argc, char* argv[])
         cout << "-ic [GBW, MV, MV1, AN06]: set initial condition" << endl;
         cout << "-alphas_scaling factor: scale \\lambdaQCD^2 by given factor" << endl;
         cout << "-ystep step: set rapidity step size" << endl;
+        cout << "-bfkl: solve bfkl equation, no bk" << endl;
     }
 
     /*******************
@@ -99,6 +101,8 @@ int main(int argc, char* argv[])
             dy = StrToReal(argv[i+1]);
         else if (string(argv[i])=="-minr")
             minr = StrToReal(argv[i+1]);
+        else if (string(argv[i])=="-bfkl")
+            bfkl=true;
         else if (string(argv[i]).substr(0,1)=="-")
         {
             cerr << "Unrecoginzed parameter " << argv[i] << endl;
@@ -111,6 +115,7 @@ int main(int argc, char* argv[])
     N->SetMinR(minr);
     N->Initialize();
     Solver s(N);
+    s.SetBfkl(bfkl);
     s.SetRunningCoupling(rc);
     s.SetAlphasScaling(alphas_scaling);
     s.SetDeltaY(dy);
@@ -141,8 +146,10 @@ int main(int argc, char* argv[])
     infostr << endl;
     infostr <<"# Initial saturation scale Q_s^2=" << N->InitialSaturationScaleSqr()
         << " GeV^2" << endl;
-
-    infostr << "# Solving BK equation up to y=" << maxy << endl;
+        
+    if (bfkl) infostr <<"# Solving BFKL equation ";
+    else infostr << "# Solving BK equation "; 
+    infostr << "up to y=" << maxy << endl;
     infostr << "# r limits: " << N->MinR() << " - " << N->MaxR() << " points "
     << N->RPoints() << " multiplier " << N->RMultiplier() << endl;
     infostr << "# maxy " << maxy << " ystep " << dy << endl;

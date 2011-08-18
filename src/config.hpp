@@ -35,7 +35,7 @@ const REAL e = sqrt(4.0*M_PI*ALPHA_e);
 // Fit to HERA: 0.7 0902.1112
 //const REAL MAXALPHA = 0.7;  
 const REAL MAXALPHA = 0.5;  // 0704.0612
-const REAL ALPHABAR_s = 0.05;       // \alphabar_s if RC=constant
+const REAL ALPHABAR_s = 0.2;       // \alphabar_s if RC=constant
 const REAL ALPHAS = 0.2;    // compare with ALPHABAR_s.... ok, doesn't make sense
 
 // Other constants

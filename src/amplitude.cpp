@@ -127,7 +127,7 @@ REAL AmplitudeR::InitialCondition(REAL r, REAL b)
     if (ic == MV1)
     {
         // Same as previoius but w.o. anomalous dimension
-        Q_s0sqr = 1.3;//1.0/M_PI;   // same as in ref. 0708.0231 (or is it??)
+        Q_s0sqr = 0.2;//1.0/M_PI;   // same as in ref. 0708.0231 (or is it??)
         const REAL e = 2.7182818;
         if (r < 2e-6)
             return SQR(r)*Q_s0sqr/4.0

@@ -38,12 +38,16 @@ class Solver
         REAL GetAlphasScaling();
         void SetDeltaY(REAL dy);
 
+        void SetBfkl(bool bfkl_);
+        bool GetBfkl();
+
     private:
         AmplitudeR* N;
 
         RunningCoupling rc;
         REAL alphas_scaling;
         REAL deltay;
+        bool bfkl;
 
         
 

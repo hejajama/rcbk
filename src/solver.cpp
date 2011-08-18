@@ -17,6 +17,7 @@ Solver::Solver(AmplitudeR* _N)
 {
     N=_N;
     deltay=0.2;
+    bfkl=false;
 }
 
 /*
@@ -141,7 +142,7 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
                 ////THIS IS NOT TRUE IF THERE IS b-DEPENDENCE
                 // optimize: as we know that the amplitude saturates to N=1,
                 // we don't have to evolve it at large r
-                if (rind>10)
+                if (rind>10 and !par->S->GetBfkl())
                 {
                     if (amplitude[rind-2]>0.9999 and amplitude[rind-1]>0.9999
                         and amplitude[rind]>0.9999)
@@ -208,6 +209,9 @@ REAL Solver::RapidityDerivative(REAL y,
 {
     const int RINTPOINTS = 700;
     const REAL RINTACCURACY = 0.01;
+
+    if (lnr01 <= N->LogRVal(0)) lnr01*=0.999;
+    else if (lnr01 >= N->LogRVal(N->RPoints()-1)) lnr01*=0.999;
     
     // Integrate first over r, then over r, then \theta
     Inthelper_rthetaint helper;
@@ -333,7 +337,8 @@ REAL Inthelperf_thetaint(REAL theta, void* p)
         //REAL n12 = par->Solv->InterpolateN(0.5*std::log(r12sqr), 0, 0, par->data);
         REAL n01 = par->n01;
 
-        REAL result = n02 + n12 - n01 - n02*n12;
+        REAL result = n02 + n12 - n01;
+        if (!par->Solv->GetBfkl()) result -= n02*n12;
 
         result *= par->Solv->Kernel(r01, r02, std::sqrt(r12sqr), par->alphas_r01,
             par->alphas_r02, alphas_r12, par->y, theta);
@@ -362,10 +367,11 @@ REAL Inthelperf_thetaint(REAL theta, void* p)
             std::log(std::sqrt(b12sqr)), thetab12, par->data );
     
     REAL result = 0;/*std::exp(n02) + std::exp(n12) - std::exp(par->ln_n01)
-            - std::exp(n02+n12);*/ ///FIXME
+            - std::exp(n02+n12); ///FIXME
 
     //result *= par->Solv->Kernel(std::exp(par->lnr01), std::exp(par->lnb01), par->thetab,
     //        std::exp(par->lnr02), theta, par->y);
+    */
     return 0;
 }
 
@@ -389,7 +395,7 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
 
     // Ref for different prescriptions: 0704.0612
     // Convention: r01=r, r02 = r1, r12=r2
-    REAL theta012, cosr1r2, Rsqr, z, zsqrt;
+    REAL Rsqr, z, zsqrt;
     REAL costheta2; REAL r02dotr12;
 
     switch(rc)
@@ -574,4 +580,14 @@ REAL Solver::GetAlphasScaling()
 void Solver::SetDeltaY(REAL dy)
 {
     deltay = dy;
+}
+
+void Solver::SetBfkl(bool bfkl_)
+{
+    bfkl=bfkl_;
+}
+
+bool Solver::GetBfkl()
+{
+    return bfkl;
 }
