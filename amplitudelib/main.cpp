@@ -17,6 +17,7 @@ const string version = "v. 0.1  2011-xx-xx";
 enum Mode
 {
     X,
+    YDEP,
     K,
     SATSCALE,
     GD,
@@ -36,6 +37,7 @@ int main(int argc, char* argv[])
     Mode mode=X;
     REAL Ns=0.5;
     REAL y=0;
+    REAL r=-1;
     string datafile="output.dat";
 
     if (string(argv[1])=="-help")
@@ -43,6 +45,7 @@ int main(int argc, char* argv[])
         cout << "-y y: set rapidity" << endl;
         cout << "-data datafile" << endl;
         cout << "-x: print amplitude in x space" << endl;
+        cout << "-ydep r: print N(r,y) as a function of y" << endl;
         cout << "-k: print amplitude in k space" << endl;
         cout << "-ugd: print unintegrated gluon distribution" << endl;
         cout << "-dsigmady: print d\\sigma/dy" << endl;
@@ -58,6 +61,10 @@ int main(int argc, char* argv[])
             datafile = argv[i+1];
         else if (string(argv[i])=="-x")
             mode=X;
+        else if (string(argv[i])=="-ydep")
+        {
+            mode=YDEP; r=StrToReal(argv[i+1]);
+        }
         else if (string(argv[i])=="-k")
             mode=K;
         else if (string(argv[i])=="-ugd")
@@ -106,6 +113,15 @@ int main(int argc, char* argv[])
              << N.N(r,y,1) << " " << N.N(r,y,2) <<
              " " << N.LogLogDerivative(r,y) << endl;
         }
+    }
+    else if (mode==YDEP)
+    {
+        cout << "# N(r=" << r <<", y) as sa function of y" << endl;
+        for (REAL y=0; y<N.MaxY(); y+=0.1)
+        {
+            cout << y << " " << N.N(r,y) << endl;
+        }
+
     }
     else if (mode==SATSCALE)
     {
