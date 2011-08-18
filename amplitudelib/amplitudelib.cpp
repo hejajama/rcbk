@@ -576,10 +576,11 @@ REAL AmplitudeLib::SaturationScale(REAL y, REAL Ns)
  */
 void AmplitudeLib::InitializeInterpolation(REAL y)
 {
+    if (std::abs(interpolator_y - y) < 0.01) return;    // Already done it
     if (interpolator_y>=0)
     {
+        interpolator_y=-1;
         delete interpolator;
-        /// Todo: Did that delete line just free tmpnarray[] and tmprarray[]?
     }
     for (int i=0; i<rpoints; i++)
     {
