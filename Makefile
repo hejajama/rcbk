@@ -1,9 +1,7 @@
-CXXFLAGS = `gsl-config --cflags` -g -Wall -pedantic #-fopenmp# -I ./libbci-1.1.0/ 
+CXXFLAGS = `gsl-config --cflags` -g -Wall -pedantic -I ../amplitudelib #-fopenmp# -I ./libbci-1.1.0/ 
 LDFLAGS = `gsl-config --libs` -lm  
 
-SOURCES = src/main.cpp src/tools.cpp src/amplitude.cpp src/solver.cpp src/interpolation.cpp 
-
-OBJECTS=$(SOURCES:.cpp=.o)
+include filelist.m
 
 all: rbk
 
