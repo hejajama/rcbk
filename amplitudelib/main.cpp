@@ -21,7 +21,8 @@ enum Mode
     K,
     SATSCALE,
     GD,
-    DSIGMADY
+    DSIGMADY,
+    PTSPECTRUM
 };
 
 int main(int argc, char* argv[])
@@ -48,6 +49,7 @@ int main(int argc, char* argv[])
         cout << "-ydep r: print N(r,y) as a function of y" << endl;
         cout << "-k: print amplitude in k space" << endl;
         cout << "-ugd: print unintegrated gluon distribution" << endl;
+        cout << "-pt_spectrum: print dN/(d^2 p_T dy)" << endl;
         cout << "-dsigmady: print d\\sigma/dy" << endl;
         cout << "-satscale Ns, print satscale r_s defined as N(r_s)=Ns" << endl;
         return 0;
@@ -71,6 +73,8 @@ int main(int argc, char* argv[])
             mode=GD;
         else if (string(argv[i])=="-dsigmady")
             mode=DSIGMADY;
+        else if (string(argv[i])=="-pt_spectrum")
+            mode=PTSPECTRUM;
         else if (string(argv[i])=="-satscale")
         {
             mode=SATSCALE;
@@ -134,21 +138,34 @@ int main(int argc, char* argv[])
     }
     else if (mode==GD)
     {
-        REAL mink=0.3; REAL maxk=20;
+        REAL mink=0.1; REAL maxk=20;
         int kpoints=250;
         REAL kmultiplier = std::pow(maxk/mink, 1.0/(kpoints-1.0));
         cout << "# UGD" << endl << "# k_T [GeV]   UGD   \\alpha_s(k)" << endl;
-        #pragma omp parallel for schedule(dynamic, 5)
+        //#pragma omp parallel for schedule(dynamic, 5)
         for (int kind=0; kind<kpoints; kind++)
         {
             REAL tmpk = mink*std::pow(kmultiplier, kind);
             REAL result = N.UGD(tmpk, y);
-            #pragma omp critical
+            //#pragma omp critical
             {
                 cout << tmpk << " " << result << " " << Alpha_s(SQR(tmpk)) <<endl;
             }
         }
     }
+
+    else if (mode==PTSPECTRUM)
+    {
+        REAL sqrts=7000;
+        cout << "#d\\sigma/dy d^2p_T, sqrt(s) = " << sqrts << "GeV" << endl;
+        cout << "# p_T   d\\sigma" << endl;
+        for (REAL pt=1; pt<6; pt+=0.2)
+        {
+            REAL result = N.dN_gluon_dyd2pt(pt, y, sqrts);
+            cout << pt << " " << result << endl;
+        }
+    }
+    
     else if (mode==DSIGMADY)
     {
         REAL miny=-3;

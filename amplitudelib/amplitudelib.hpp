@@ -18,6 +18,9 @@ class AmplitudeLib
 
         // der w.r.t r der times.
         REAL N(REAL r, REAL y, int der=0);
+
+        // S = 1-N
+        REAL S(REAL r, REAL y, int der=0);
         
         // Amplitude in k-space, ft with 1/r^2 prefactor
         REAL N_k(REAL kt, REAL y);
@@ -27,12 +30,12 @@ class AmplitudeLib
         
 
         // Unintegrated gluon density
-        REAL UGD(REAL k, REAL y);
+        REAL UGD(REAL k, REAL y, Interpolator* interp=NULL);
 
         // k_T factorization: d\sigma / (dyd^2p_T)
         // = const * 1/p_T^2 \int d^2 k_T/4 \alphas_(Q) \psi(|p_t+k_T|/2,x1)
         //   * \psi(|p_t-k_T|/2, x2)
-        REAL dSigmadyd2pt(REAL pt, REAL x1, REAL x2);
+        REAL dN_gluon_dyd2pt(REAL pt, REAL y, REAL sqrts);
         REAL dSigmady(REAL y, REAL sqrts);
         REAL dSigmady_mc(REAL y, REAL sqrts);
 
@@ -43,12 +46,15 @@ class AmplitudeLib
         REAL SaturationScale(REAL y, REAL Ns);
 
         void InitializeInterpolation(REAL y);
+        Interpolator* MakeInterpolator(REAL y);
     
         int YVals();
         int RPoints();
         REAL MinR();
         REAL MaxR();
         REAL MaxY();
+
+        void SetOutOfRangeErrors(bool er);
         
         
     private:
@@ -65,6 +71,8 @@ class AmplitudeLib
         REAL minr;
         REAL rmultiplier;
         int rpoints;
+
+        bool out_of_range_errors;  // don't print "out of range" errors
 };
 
 const int INTERPOLATION_POINTS = 8;

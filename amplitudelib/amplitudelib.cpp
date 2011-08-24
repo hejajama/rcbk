@@ -41,18 +41,20 @@ REAL AmplitudeLib::N(REAL r, REAL y, int der)
     }
     if (r < MinR() or r > MaxR() )
     {
-        cerr << "r must be between limits [" << MinR() << ", " << MaxR() << "]"
-            << " asked r=" << r << " " << LINEINFO
-            << endl;
-        return 0;
+        if (out_of_range_errors)
+            cerr << "r must be between limits [" << MinR() << ", " << MaxR() << "]"
+                << " asked r=" << r << " " << LINEINFO
+                << endl;
+        if (r<MinR()) r=MinR(); else if (r>MaxR()) r=MaxR();
     }
 
     if (y<0 or y>yvals[yvals.size()-1] )
     {
-        cerr << "y must be between limits [" << 0 << ", "
-            << yvals[yvals.size()-1] << "], asked y=" << y << " "
-            << LINEINFO << endl;
-        return 0;
+        if (out_of_range_errors)
+            cerr << "y must be between limits [" << 0 << ", "
+                << yvals[yvals.size()-1] << "], asked y=" << y << " "
+                << LINEINFO << endl;
+        if (y < 0) y=0; else if (y>yvals[yvals.size()-1]) y=yvals[yvals.size()-1];
     }
     //REAL lnr = std::log(r);
 
@@ -140,6 +142,11 @@ REAL AmplitudeLib::N(REAL r, REAL y, int der)
 
 }
 
+REAL AmplitudeLib::S(REAL r, REAL y, int der)
+{
+    return 1.0 - N(r,y,der);
+}
+
 /*
  * FT the amplitude to the k-space
  * N(k) = \int d^2 r/(2\pi r^2) exp(ik.r)N(r)
@@ -223,18 +230,26 @@ struct UGDHelper
 {
     REAL y;
     AmplitudeLib* N;
+    Interpolator* interp;
 };
 REAL UGDHelperf(REAL x, void* p);
 
-REAL AmplitudeLib::UGD(REAL k, REAL y)
+/*
+ * Calculate unintegrated gluon distribution
+ * def. as C_f/\alpha_s(k) 1/(2\pi)^3 \int dr r \nabla_r^2 (2N-N^2)
+ *
+ * If interp != null, we know that it is already initialized with given y
+ * and thus we can use it. Default value of interp is NULL
+ */
+REAL AmplitudeLib::UGD(REAL k, REAL y, Interpolator* interp)
 {
-    if (k < UGD_IR_CUTOFF) return 0;
+    //if (k < UGD_IR_CUTOFF) return 0;
     
     set_fpu_state();
-    init_workspace_fourier(500);   // number of bessel zeroes, max 2000
+    init_workspace_fourier(700);   // number of bessel zeroes, max 2000
 
     UGDHelper par;
-    par.y=y; par.N=this; 
+    par.y=y; par.N=this; par.interp=interp;
     REAL result = fourier_j0(k,UGDHelperf,&par);
 
     REAL Cf = (SQR(Nc)-1.0)/(2.0*Nc);
@@ -250,20 +265,29 @@ REAL UGDHelperf(REAL r, void* p)
     UGDHelper* par = (UGDHelper*) p;
     REAL result=0;
     REAL dern=0, der2n=0, n=0;
-    if (r > par->N->MaxR()) // N==1 for all r>MaxR()
+    if (r >= par->N->MaxR()) // N==1 for all r>MaxR()
     {
         n=1; dern=0; der2n=0;
     }
-    else if (r < 1e-5)       //  TODO: par->N->MinR())
+    else if (r <= par->N->MinR())  
         return 0;
     else
-    {       
-        dern = par->N->N(r, par->y, 1);
-        der2n = par->N->N(r, par->y, 2);
-        n = par->N->N(r, par->y);
+    {
+        if (par->interp == NULL)
+        {
+            dern = par->N->N(r, par->y, 1);
+            der2n = par->N->N(r, par->y, 2);
+            n = par->N->N(r, par->y);
+        }
+        else
+        {
+            dern = par->interp->Derivative(r);
+            der2n = par->interp->Derivative2(r);
+            n = par->interp->Evaluate(r);
+        }
     }
 
-    result = 2.0/r*dern + 2*der2n - 2.0*n/r*dern - 2.0*SQR(dern) - 2.0*n*der2n;
+    result = 2.0/r*dern + 2.0*der2n - 2.0*n/r*dern - 2.0*SQR(dern) - 2.0*n*der2n;
     return r*result;
 }
 
@@ -275,23 +299,37 @@ REAL UGDHelperf(REAL r, void* p)
 struct Inthelper_dsigmadyd2pt
 {
     AmplitudeLib* N;
-    REAL pt, x1, x2;
+    Interpolator* amplitude_y1;
+    Interpolator* amplitude_y2;
+    REAL pt;
+    REAL y1,y2;
     REAL kt;
-    REAL sqrts,y;
 };
-REAL Inthelperf_dsigmadyd2pt(REAL kt, void* p);
-REAL Inthelperf_dsigmadyd2pt_thetaint(REAL kt, void* p);
-REAL AmplitudeLib::dSigmadyd2pt(REAL pt, REAL x1, REAL x2)
+REAL Inthelperf_dN_gluon_dyd2pt_kint(REAL kt, void* p);
+REAL Inthelperf_dN_gluon_dyd2pt_thetaint(REAL kt, void* p);
+REAL AmplitudeLib::dN_gluon_dyd2pt(REAL pt, REAL y, REAL sqrts)
 {
     const int KTINTPOINTS = 100;
     const REAL KTINTACCURACY = 0.05;
     
     Inthelper_dsigmadyd2pt helper;
-    helper.N=this; helper.pt=pt; helper.x1=x1; helper.x2=x2;
+    helper.N=this; helper.pt=pt;
+    helper.amplitude_y1=NULL; helper.amplitude_y2=NULL;
+    REAL y1 = pt/sqrts*std::exp(y); REAL y2 = pt/sqrts*std::exp(-y);
+    helper.y1=y1; helper.y2=y2;
+    if (y1<0 or y2<0)
+    {
+        cerr << "Negative rapidity at " << LINEINFO <<", y1=" << y1 <<", y2="
+            << y2 << endl;
+        return 0;
+    }
+
+    helper.amplitude_y1 = MakeInterpolator(y1);
+    helper.amplitude_y2 = MakeInterpolator(y2);
 
     gsl_function fun;
     fun.params = &helper;
-    fun.function = Inthelperf_dsigmadyd2pt;
+    fun.function = Inthelperf_dN_gluon_dyd2pt_kint;
 
     gsl_integration_workspace *workspace 
      = gsl_integration_workspace_alloc(KTINTPOINTS);
@@ -308,21 +346,25 @@ REAL AmplitudeLib::dSigmadyd2pt(REAL pt, REAL x1, REAL x2)
     if (status)
     {
         cerr << "k_T integration failed at " << LINEINFO <<", pt=" << pt
-            << ", x1=" << x1 <<", x2=" << x2 <<", result=" << result
+            << ", y1=" << y1 <<", y2=" << y2 <<", result=" << result
             <<" relerr " << std::abs(abserr/result) << endl;
     }
+
+    delete helper.amplitude_y1;
+    delete helper.amplitude_y2;
+    
     return result/(4.0*SQR(pt));    // 4.0 is in the integration measure d^2k/4
 }
 
-REAL Inthelperf_dsigmadyd2pt(REAL kt, void* p)
+REAL Inthelperf_dN_gluon_dyd2pt_kint(REAL kt, void* p)
 {
-    const int THETAINTPOINTS = 80;
+    const int THETAINTPOINTS = 40;
     const REAL THETAINTACCURACY = 0.05;
     
     Inthelper_dsigmadyd2pt* par = (Inthelper_dsigmadyd2pt*) p;
     par->kt=kt;
     gsl_function fun; fun.params=par;
-    fun.function=Inthelperf_dsigmadyd2pt_thetaint;
+    fun.function=Inthelperf_dN_gluon_dyd2pt_thetaint;
     
     gsl_integration_workspace *workspace 
      = gsl_integration_workspace_alloc(THETAINTPOINTS);
@@ -336,7 +378,7 @@ REAL Inthelperf_dsigmadyd2pt(REAL kt, void* p)
     if (status)
     {
         cerr << "thetaintegration failed at " << LINEINFO <<", pt=" << par->pt
-            << ", kt=" << kt <<", x1=" << par->x1 <<", x2=" << par->x2
+            << ", kt=" << kt <<", y1=" << par->y1 <<", y2=" << par->y2
             <<", result=" << result
             <<" relerr " << std::abs(abserr/result) << endl;
     }
@@ -345,7 +387,7 @@ REAL Inthelperf_dsigmadyd2pt(REAL kt, void* p)
     
 }
 
-REAL Inthelperf_dsigmadyd2pt_thetaint(REAL theta, void* p)
+REAL Inthelperf_dN_gluon_dyd2pt_thetaint(REAL theta, void* p)
 {
     Inthelper_dsigmadyd2pt* par = (Inthelper_dsigmadyd2pt*) p;
     REAL costheta = std::cos(theta);
@@ -355,8 +397,8 @@ REAL Inthelperf_dsigmadyd2pt_thetaint(REAL theta, void* p)
     ktminuspt = std::sqrt(ktminuspt);
     
     REAL Q = std::max(ktpluspt/2.0, ktminuspt/2.0);
-    REAL ugd1 = par->N->UGD(ktpluspt/2.0, par->x1);
-    REAL ugd2 = par->N->UGD(ktminuspt/2.0, par->x2);
+    REAL ugd1 = par->N->UGD(ktpluspt/2.0, par->y1, par->amplitude_y1);
+    REAL ugd2 = par->N->UGD(ktminuspt/2.0, par->y2, par->amplitude_y2);
 
     if (isnan(ugd1) or isnan(ugd2) or Q<1e-10)
     {
@@ -373,7 +415,7 @@ REAL Inthelperf_dsigmadyd2pt_thetaint(REAL theta, void* p)
 REAL Inthelperf_dsigmady(REAL pt, void* p);
 REAL AmplitudeLib::dSigmady(REAL y, REAL sqrts)
 {
-    REAL PTINTPOINTS = 400;
+    /*REAL PTINTPOINTS = 400;
     REAL PTINTACCURACY = 0.05;
     
     REAL minpt = 0;
@@ -401,18 +443,19 @@ REAL AmplitudeLib::dSigmady(REAL y, REAL sqrts)
             << ", y=" << y <<", result=" << result
             <<" relerr " << std::abs(abserr/result) << endl;
     }
-
+*/
     return 0;
 }
 
 REAL Inthelperf_dsigmady(REAL pt, void* p)
 {
-    Inthelper_dsigmadyd2pt* par = (Inthelper_dsigmadyd2pt*)p;
+    /*Inthelper_dsigmadyd2pt* par = (Inthelper_dsigmadyd2pt*)p;
     REAL x1 = pt/par->sqrts*std::exp(par->y);
     REAL x2 = pt/par->sqrts*std::exp(-par->y);
 
-    return par->N->dSigmadyd2pt(pt, x1, x2);    
-
+    return par->N->dN_gluon_dyd2pt(pt, x1, x2);
+    */
+    return 0;
 }
 
 /*
@@ -422,7 +465,7 @@ REAL Inthelperf_dsigmady(REAL pt, void* p)
 // x[0]=p, x[1]=k, x[2]=theta
 REAL Inthelperf_dsigmadymc(REAL* x, size_t dim, void* p)
 {
-    Inthelper_dsigmadyd2pt* par = (Inthelper_dsigmadyd2pt*)p;
+    /*Inthelper_dsigmadyd2pt* par = (Inthelper_dsigmadyd2pt*)p;
     if (x[1]>x[0])  return 0;
     
 
@@ -439,11 +482,13 @@ REAL Inthelperf_dsigmadymc(REAL* x, size_t dim, void* p)
     REAL ugd2 = par->N->UGD(ktminuspt/2.0, x2);
 
     return 1.0/x[0]*x[1]*Alpha_s(SQR(Q))*ugd1*ugd2;
-    
+    */
+    return 0;
 }
  
 REAL AmplitudeLib::dSigmady_mc(REAL y, REAL sqrts)
 {
+    /*
     REAL maxpt = 12;    // As in ref. 1011.5161
 
     REAL lower[3] = {1e-8, 1e-8, 0};
@@ -471,6 +516,8 @@ REAL AmplitudeLib::dSigmady_mc(REAL y, REAL sqrts)
     gsl_monte_miser_free (s);
 
     return res;
+    */
+    return 0;
 
 }
 
@@ -480,6 +527,7 @@ REAL AmplitudeLib::dSigmady_mc(REAL y, REAL sqrts)
  */
 AmplitudeLib::AmplitudeLib(std::string datafile)
 {
+    out_of_range_errors=true;
     DataFile data(datafile);
     data.GetData(n, yvals);
     minr = data.MinR();
@@ -593,6 +641,23 @@ void AmplitudeLib::InitializeInterpolation(REAL y)
     interpolator_y = y;
 }
 
+/*
+ * Initializes interpolator and returns it
+ */
+Interpolator* AmplitudeLib::MakeInterpolator(REAL y)
+{
+    REAL* interp_narray = new REAL[rpoints];
+    for (int i=0; i<rpoints; i++)
+    {
+        tmpnarray[i] = N(tmprarray[i], y);
+    }
+    Interpolator* inter = new Interpolator(tmprarray, tmpnarray, rpoints);
+    inter->Initialize();
+    delete[] interp_narray;
+    return inter;
+        
+}
+
 AmplitudeLib::~AmplitudeLib()
 {
     if (interpolator_y>=0)
@@ -625,4 +690,9 @@ int AmplitudeLib::YVals()
 REAL AmplitudeLib::MaxY()
 {
     return yvals[yvals.size()-1];
+}
+
+void AmplitudeLib::SetOutOfRangeErrors(bool er)
+{
+    out_of_range_errors=er;
 }
