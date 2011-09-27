@@ -63,7 +63,7 @@ void Solver::Solve(REAL maxy)
     EvolutionHelperR help; help.N=N; help.S=this;
     gsl_odeiv_system sys = {EvolveR, NULL, vecsize, &help};
         
-    const gsl_odeiv_step_type * T = gsl_odeiv_step_rk2; //f45;
+    const gsl_odeiv_step_type * T = gsl_odeiv_step_rkf45; //2; //f45;
 
     gsl_odeiv_step * s    = gsl_odeiv_step_alloc (T, vecsize);
     gsl_odeiv_control * c = gsl_odeiv_control_y_new (0.0, 0.03);    //abserr relerr
@@ -213,7 +213,7 @@ REAL Solver::RapidityDerivative(REAL y,
     if (lnr01 <= N->LogRVal(0)) lnr01*=0.999;
     else if (lnr01 >= N->LogRVal(N->RPoints()-1)) lnr01*=0.999;
     
-    // Integrate first over r, then over r, then \theta
+    // Integrate first over r, then over \theta
     Inthelper_rthetaint helper;
     helper.N=N; helper.Solv=this;
     helper.y=y; helper.lnb01=lnb01; helper.lnr01=lnr01;
@@ -246,15 +246,20 @@ REAL Solver::RapidityDerivative(REAL y,
 
     if (status)
     {
+        #pragma omp critical
         cerr << "RInt failed at " << LINEINFO << ": lnr=" << lnr01 <<", thetab="
         << thetab <<", lnb01=" << lnb01 <<", result " << result << ", relerr "
         << std::abs(abserr/result) << endl;
     }
 
     
-    if (result<-1e-4) cerr << "Amplitude seems to decrease from " << helper.n01
+    /*if (result<-1e-4)
+        #pragma omp critical
+        cerr << "Amplitude seems to decrease from " << helper.n01
         << " at r01 = " << std::exp(lnr01)
-        << ", y=" << y << " result " << result << " " << LINEINFO << endl;
+        << ", y=" << y << " result " << result << " " << LINEINFO 
+        << " (NOTE: this is not an error!)" << endl;
+        */
 
     return result;
 }

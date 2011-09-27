@@ -165,7 +165,7 @@ REAL AmplitudeR::Ntable(int yind, int rind, int bind, int thetaind)
  * Initial condition dependent strong coupling constant
  * \lambda_{QCD}^2 and the scaling factor (whether or not there is factor
  * 4 in the ln[1/(r^2\lambdaQCD^2)] term) may depend on the IC
- * if alphas_scaling is given, it overrides saved alphas_scaling
+ * if scaling is given, it overrides saved alphas_scaling
  * 
  * SetInitialCondition sets appropriate values to required variables
  */
@@ -188,7 +188,7 @@ REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
 }
 int AmplitudeR::RPoints()
 {
-    return 300;
+    return 400;
     //return 90;
 }
 
