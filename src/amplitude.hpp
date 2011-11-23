@@ -16,7 +16,8 @@ enum InitialConditionR
     MV,     // ref 0902.1112, anomalous dimension
     MV1,    // ref 0902.1112, same as MV but w.o. anomalous dimension
             //    no fitted parameters
-    AN06    // ref e.g. 0704.012, 1_exp(-(rQ_s)^(2\gamma)/4)
+    AN06,    // ref e.g. 0704.012, 1_exp(-(rQ_s)^(2\gamma)/4)
+    MV1_dAu // ref 1001.1378, RHIC dAu data
 };
 
 // AmplitudeR::Initialize() must be called before this class is used, but first
@@ -74,6 +75,8 @@ public:
 
     REAL InitialSaturationScaleSqr();
 
+    REAL X0();
+
 
     // amplitude[yind][rind][bind][thetaind]
     std::vector < std::vector< std::vector< std::vector<REAL> > > > n;
@@ -93,6 +96,7 @@ private:
     REAL maxalphas;
     REAL minr;
     REAL Q_s0sqr;    // Initial saturation scale sqr
+    REAL x0;
 };
 
 const REAL MINLN_N = -999;

@@ -66,7 +66,7 @@ void Solver::Solve(REAL maxy)
     const gsl_odeiv_step_type * T = gsl_odeiv_step_rkf45; //2; //f45;
 
     gsl_odeiv_step * s    = gsl_odeiv_step_alloc (T, vecsize);
-    gsl_odeiv_control * c = gsl_odeiv_control_y_new (0.0, 0.03);    //abserr relerr
+    gsl_odeiv_control * c = gsl_odeiv_control_y_new (0.0, 0.01);    //abserr relerr
     gsl_odeiv_evolve * e  = gsl_odeiv_evolve_alloc (vecsize);
     REAL h = step;  // Initial ODE solver step size
     
@@ -99,7 +99,7 @@ void Solver::Solve(REAL maxy)
                 }
             }
         }
-    } while (y < maxy);
+    } while (y <= maxy);
 
     gsl_odeiv_evolve_free (e);
     gsl_odeiv_control_free (c);
@@ -129,7 +129,7 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
     Interpolator interp(tmprarray, tmpyarray, par->N->RPoints());
     interp.Initialize();
     
-    #pragma omp parallel for schedule(dynamic, 5) firstprivate(interp) 
+    #pragma omp parallel for schedule(dynamic, 5) // firstprivate(interp) 
     for (int rind=0; rind < par->N->RPoints(); rind++)
     {
         for (int thetaind=0; thetaind < par->N->ThetaPoints(); thetaind++)
@@ -154,15 +154,13 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
                         }*/
                         continue;
                     }
-                } 
-                
+                }
                 REAL tmplnr = par->N->LogRVal(rind);
                 REAL tmplnb = par->N->LogBVal(bind);
                 REAL tmptheta = par->N->ThetaVal(thetaind);
                 /*cout << "tmpind " << tmpind << " maxrind "
                  << par->N->RPoints()-1 << " r=" << par->N->RVal(tmpind) <<
                  " amplitude " << par->S->InterpolateN(tmplnr, 0, 0, amplitude) ;*/
-                
                 dydt[tmpind] = par->S->RapidityDerivative(y, tmplnr, tmplnb, tmptheta,
                     amplitude, &interp);
                 //cout << " reldydt " << dydt[tmpind]/par->S->InterpolateN(tmplnr, 0, 0, amplitude) << endl;
@@ -498,7 +496,7 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
  */
 REAL Solver::InterpolateN(REAL lnr, REAL lnb, REAL thetab, const REAL* data)
 {
-    //cerr << "Solver::InterpolateN called, why?" << endl;
+    cerr << "Solver::InterpolateN called, why?" << endl;
     // array format: ind = rind*BPoitns()*ThetaPoints()+bind*ThetaPoints()+Theta
     if (lnr > N->MaxLnR()) lnr = N->MaxLnR()*0.999;
     else if (lnr < N->MinLnR()) lnr = N->MinLnR()*0.999;  ///TODO: Same check for lnb

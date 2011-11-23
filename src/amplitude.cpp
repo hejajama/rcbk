@@ -108,13 +108,11 @@ REAL AmplitudeR::InitialCondition(REAL r, REAL b)
 {
     if (ic == GBW)
     {
-        Q_s0sqr = 0.24; // Fitted to HERA data at arXiv:0902.1112
         if (r<3e-6) return SQR(r)*Q_s0sqr / 4.0 * std::exp( -SQR(b)/2 );
         return 1.0 - std::exp(-SQR(r)*Q_s0sqr / 4.0 * std::exp( -SQR(b)/2 ) );
     }
     if (ic == MV)
     {   // same ref as for GBW
-        Q_s0sqr = 0.15;
         const REAL anomalous_dimension = 1.13;
         const REAL e = 2.7182818;
         if (r < 2e-6)
@@ -124,10 +122,9 @@ REAL AmplitudeR::InitialCondition(REAL r, REAL b)
             * std::log( 1.0/(r*std::sqrt(lambdaqcd2)) + e) );
 
     }
-    if (ic == MV1)
+    if (ic == MV1 or ic == MV1_dAu)
     {
         // Same as previoius but w.o. anomalous dimension
-        Q_s0sqr = 0.2;//1.0/M_PI;   // same as in ref. 0708.0231 (or is it??)
         const REAL e = 2.7182818;
         if (r < 2e-6)
             return SQR(r)*Q_s0sqr/4.0
@@ -137,7 +134,6 @@ REAL AmplitudeR::InitialCondition(REAL r, REAL b)
     }
     if (ic == AN06)
     {
-        Q_s0sqr = 1.0;   // following arXiv:0704.0612, not fitted
         const REAL gamma = 0.6;
         if (r<1e-10) return std::pow(SQR(r)*Q_s0sqr,gamma)/4.0;
         return 1.0 - std::exp( -std::pow( SQR(r)*Q_s0sqr, gamma )/4.0 );
@@ -298,18 +294,41 @@ void AmplitudeR::SetInitialCondition(InitialConditionR ic_)
     switch(ic)
     {
         case GBW:
-        case MV:
-        case MV1:
-            // Values from the fit to the HERA data 0902.1112
+            Q_s0sqr = 0.24;
             lambdaqcd2=0.241*0.241;
             Cfactorsqr=4.0;
             maxalphas=0.7;
+            x0=0.01;
+            break;
+        case MV:
+            Q_s0sqr = 0.15;
+            lambdaqcd2=0.241*0.241;
+            Cfactorsqr=4.0;
+            maxalphas=0.7;
+            x0=0.01;
+            break;
+        case MV1:
+            // Values from the fit to the HERA data 0902.1112
+            Q_s0sqr = 0.2;
+            lambdaqcd2=0.241*0.241;
+            Cfactorsqr=4.0;
+            maxalphas=0.7;
+            x0=0.01;
             break;
         case AN06:
             // ref. 0704.0612
+            Q_s0sqr = 1.0;
             lambdaqcd2 = 0.2*0.2;
             Cfactorsqr = 1.0;
             maxalphas=0.5;
+            x0=0.01;
+            break;
+        case MV1_dAu:   // ref 1001.1378
+            Q_s0sqr = 0.4;
+            lambdaqcd2 = 0.241*0.241;
+            x0=0.02;
+            maxalphas=0.7;
+            Cfactorsqr=4.0;
             break;
     };
 
@@ -343,4 +362,9 @@ void AmplitudeR::SetMinR(REAL minr_)
 REAL AmplitudeR::InitialSaturationScaleSqr()
 {
     return Q_s0sqr;
+}
+
+REAL AmplitudeR::X0()
+{
+    return x0;
 }
