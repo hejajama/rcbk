@@ -6,6 +6,9 @@
 #include "amplitude.hpp"
 #include <cmath>
 #include <iostream>
+#include <gsl/gsl_sf_bessel.h>
+#include <gsl/gsl_integration.h>
+
 using std::cout; using std::endl;
 
 AmplitudeR::AmplitudeR()
@@ -104,6 +107,8 @@ int AmplitudeR::AddRapidity(REAL y)
     return yvals.size()-1;
 }
 
+double Inthelperf_mvinfra(double k, void* p);
+struct Inthelper_mvinfra{ double lambdaqcd2; double qsqr; double r; };
 REAL AmplitudeR::InitialCondition(REAL r, REAL b)
 {
     if (ic == GBW)
@@ -115,8 +120,8 @@ REAL AmplitudeR::InitialCondition(REAL r, REAL b)
     {   // same ref as for GBW
         const REAL anomalous_dimension = 1.13;
         const REAL e = 2.7182818;
-        if (r < 2e-6)
-            return std::pow(SQR(r)*Q_s0sqr/4.0, anomalous_dimension)
+        if (r < 2e-6)   ///NOTE: factor 1/4 "correctly", not as in ref.
+            return std::pow(SQR(r)*Q_s0sqr, anomalous_dimension)/4.0
             * std::log( 1.0/(r*std::sqrt(lambdaqcd2)) + e);
         return 1.0 - std::exp(-std::pow(SQR(r)*Q_s0sqr/4.0, anomalous_dimension)
             * std::log( 1.0/(r*std::sqrt(lambdaqcd2)) + e) );
@@ -138,8 +143,43 @@ REAL AmplitudeR::InitialCondition(REAL r, REAL b)
         if (r<1e-10) return std::pow(SQR(r)*Q_s0sqr,gamma)/4.0;
         return 1.0 - std::exp( -std::pow( SQR(r)*Q_s0sqr, gamma )/4.0 );
     }
+    if (ic == MV1_OSC)
+    {
+        Inthelper_mvinfra helper;
+        helper.qsqr = Q_s0sqr; helper.lambdaqcd2 = lambdaqcd2;
+        helper.r=r;
+        gsl_function f;
+        f.params=&helper;
+        f.function = Inthelperf_mvinfra;
+        REAL result, abserr;
+        gsl_integration_workspace *workspace 
+          = gsl_integration_workspace_alloc(500);
+        int status = gsl_integration_qag(&f, 0.0001, 100,
+            0, 0.01, 100, GSL_INTEG_GAUSS51, workspace, &result, &abserr);
+        gsl_integration_workspace_free(workspace);
+        if (status)
+        {
+            cerr << "icint failed at " << LINEINFO << " intresult: " << result
+                    << " relerr " << std::abs(abserr/result) << " r: " << r << endl;
+        }
+        if (result < 1e-6)
+            return result;
+        else
+            return 1.0 - std::exp(-result);
+    }
     cerr << "Unkown initial condition set! " << LINEINFO << endl;
     return 0;
+}
+
+REAL Inthelperf_mvinfra(double k, void* p)
+{
+    Inthelper_mvinfra * par = (Inthelper_mvinfra*) p;
+    REAL result=0;
+
+    result = SQR(par->r)*par->qsqr
+        *(1.0-gsl_sf_bessel_J0(SQR(par->r)*par->lambdaqcd2))/(M_PI*k*k*k)
+        * std::atan(SQR(k)/(SQR(par->r)*par->lambdaqcd2))*2/(M_PI);
+    return result;
 }
 
 
@@ -323,13 +363,19 @@ void AmplitudeR::SetInitialCondition(InitialConditionR ic_)
             maxalphas=0.5;
             x0=0.01;
             break;
-        case MV1_dAu:   // ref 1001.1378
-            Q_s0sqr = 0.4;
+        case MV1_dAu:   // ref 1001.1378 , 1009.3215
+            Q_s0sqr = 0.6 ; //0.4;  // 0.6: Most central
             lambdaqcd2 = 0.241*0.241;
             x0=0.02;
             maxalphas=0.7;
             Cfactorsqr=4.0;
             break;
+        case MV1_OSC:
+            Q_s0sqr = 2;
+            lambdaqcd2 = 0.241*0.241;
+            x0=0.01;
+            maxalphas=0.7;
+            Cfactorsqr = 0.4;
     };
 
 }

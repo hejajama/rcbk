@@ -18,7 +18,7 @@
 
 const std::string version = "v. 0.1  2011-xx-xx";
 
-// We need global variables so that the singla handler works
+// We need global variables so that the signal handler works
 std::string output="output.dat";
 std::stringstream infostr;
 AmplitudeR* N;
@@ -46,7 +46,7 @@ int main(int argc, char* argv[])
         cout << "-minr minr: set smallest dipole size for the grid" << endl;
         cout << "-output file: save output to given file" << endl;
         cout << "-rc [CONSTANT,PARENT,BALITSKY,KW,MS]: set RC prescription" << endl;
-        cout << "-ic [GBW, MV, MV1, MV1_dAu, AN06]: set initial condition" << endl;
+        cout << "-ic [GBW, MV, MV1, MV1_dAu, AN06, MV1_OSC]: set initial condition" << endl;
         cout << "-alphas_scaling factor: scale \\lambdaQCD^2 by given factor" << endl;
         cout << "-ystep step: set rapidity step size" << endl;
         cout << "-bfkl: solve bfkl equation, no bk" << endl;
@@ -92,6 +92,8 @@ int main(int argc, char* argv[])
                 ic = AN06;
             else if (string(argv[i+1])=="MV1_dAu")
                 ic = MV1_dAu;
+            else if (string(argv[i+1])=="MV1_OSC")
+                ic = MV1_OSC;
             else
             {
                 cerr << "Unknown initial condition " << argv[i+1] << endl;
@@ -141,11 +143,13 @@ int main(int argc, char* argv[])
     if (ic==GBW)
         infostr << "GBW 1-exp(-r^2Q_s^2/4)";
     else if (ic == MV)
-        infostr << "MV 1-exp(-(r^2 Q_s^2/4)^\\gamma log(1/r\\lambda_QCD + e) )";
+        infostr << "MV 1-exp(-(r^2 Q_s^2)^\\gamma/4 log(1/r\\lambda_QCD + e) )";
     else if (ic == MV1 or ic == MV1_dAu)
         infostr << "MV 1-exp(-r^2 Q_s^2/4 log(1/r\\lambda_QCD + e) )";
     else if (ic==AN06)
         infostr << "AN06 1-exp(-(r^2Q_s^2)^\\gamma/4)";
+    else if (ic==MV1_OSC)
+        infostr << "MV1 with infrared oscillation regularization";
     infostr << " x0=" << N->X0();
     infostr << endl;
     infostr <<"# Initial saturation scale Q_s^2=" << N->InitialSaturationScaleSqr()

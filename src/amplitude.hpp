@@ -17,7 +17,8 @@ enum InitialConditionR
     MV1,    // ref 0902.1112, same as MV but w.o. anomalous dimension
             //    no fitted parameters
     AN06,    // ref e.g. 0704.012, 1_exp(-(rQ_s)^(2\gamma)/4)
-    MV1_dAu // ref 1001.1378, RHIC dAu data
+    MV1_dAu, // ref 1001.1378, RHIC dAu data
+    MV1_OSC // ref 0708.0231, infrared-oscillation-cancelling factor
 };
 
 // AmplitudeR::Initialize() must be called before this class is used, but first
