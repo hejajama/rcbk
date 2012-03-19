@@ -123,7 +123,7 @@ REAL AmplitudeR::InitialCondition(REAL r, REAL b)
         if (r < 2e-6)   ///NOTE: factor 1/4 "correctly", not as in ref.
             return std::pow(SQR(r)*Q_s0sqr, anomalous_dimension)/4.0
             * std::log( 1.0/(r*std::sqrt(lambdaqcd2)) + e);
-        return 1.0 - std::exp(-std::pow(SQR(r)*Q_s0sqr/4.0, anomalous_dimension)
+        return 1.0 - std::exp(-std::pow(SQR(r)*Q_s0sqr, anomalous_dimension)/4.0
             * std::log( 1.0/(r*std::sqrt(lambdaqcd2)) + e) );
 
     }
