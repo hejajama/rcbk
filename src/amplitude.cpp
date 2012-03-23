@@ -4,6 +4,7 @@
  */
 
 #include "amplitude.hpp"
+#include <tools/tools.hpp>
 #include <cmath>
 #include <iostream>
 #include <gsl/gsl_sf_bessel.h>
@@ -111,6 +112,7 @@ double Inthelperf_mvinfra(double k, void* p);
 struct Inthelper_mvinfra{ double lambdaqcd2; double qsqr; double r; };
 REAL AmplitudeR::InitialCondition(REAL r, REAL b)
 {
+	const REAL e = 2.7182818;
     if (ic == GBW)
     {
         if (r<3e-6) return SQR(r)*Q_s0sqr / 4.0 * std::exp( -SQR(b)/2 );
@@ -119,18 +121,35 @@ REAL AmplitudeR::InitialCondition(REAL r, REAL b)
     if (ic == MV)
     {   // same ref as for GBW
         const REAL anomalous_dimension = 1.13;
-        const REAL e = 2.7182818;
         if (r < 2e-6)   ///NOTE: factor 1/4 "correctly", not as in ref.
             return std::pow(SQR(r)*Q_s0sqr, anomalous_dimension)/4.0
             * std::log( 1.0/(r*std::sqrt(lambdaqcd2)) + e);
         return 1.0 - std::exp(-std::pow(SQR(r)*Q_s0sqr, anomalous_dimension)/4.0
             * std::log( 1.0/(r*std::sqrt(lambdaqcd2)) + e) );
-
     }
+    if (ic == MV_Au)
+    {
+		// Exponentaited proton  => nucleus
+		// N(r,b) = 1 - exp(-\sigma_0 T_A(b) N(r) ), where
+		// N(r) is the MV model (or any)
+		const double anomalous_dimension = 1.13;
+		
+		/// These coefficients depend on A and dipole model!
+		const double A=197;
+		const double b = 0.172*FMGEV;	 	// Impact parameter, 10% most central
+		const double sigma_pp = 32.77 * 0.1 * FMGEV*FMGEV;		// convert mb in 1/GeV^2
+		double np = 1.0 - std::exp(-std::pow(SQR(r)*Q_s0sqr, anomalous_dimension)/4.0
+            * std::log( 1.0/(r*std::sqrt(lambdaqcd2)) + e) );
+            
+         
+        return 1.0 - std::exp( -sigma_pp * A * T_A(b, A) * np);
+        
+		
+		
+	}
     if (ic == MV1 or ic == MV1_dAu)
     {
         // Same as previoius but w.o. anomalous dimension
-        const REAL e = 2.7182818;
         if (r < 2e-6)
             return SQR(r)*Q_s0sqr/4.0
                 * std::log( 1.0/(r*std::sqrt(lambdaqcd2)) + e);
@@ -340,6 +359,7 @@ void AmplitudeR::SetInitialCondition(InitialConditionR ic_)
             maxalphas=0.7;
             x0=0.01;
             break;
+        case MV_Au:	 // Exponentiated proton
         case MV:
             Q_s0sqr = 0.15;
             lambdaqcd2=0.241*0.241;
