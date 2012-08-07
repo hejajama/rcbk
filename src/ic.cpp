@@ -26,3 +26,13 @@ void InitialCondition::SetX0(double x0_)
 {
 	x0=x0_;
 }
+
+double InitialCondition::MinR()
+{
+	return 1e-99;
+}
+
+double InitialCondition::MaxR()
+{
+	return 1e99;
+}

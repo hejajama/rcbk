@@ -17,9 +17,10 @@
 
 #include "ic.hpp"
 #include "mv.hpp"
+#include "ic_datafile.hpp"
 
 
-const std::string version = "v. 0.9  2012-xx-xx";
+const std::string version = "v. 0.9b  2012-xx-xx";
 
 // We need global variables so that the signal handler works
 std::string output="output.dat";
@@ -38,7 +39,6 @@ int main(int argc, char* argv[])
     REAL dy = 0.2;  // ystep
     RunningCoupling rc=CONSTANT;
     REAL alphas_scaling=1.0;
-    InitialConditionR ic = GBW;
     REAL minr = 1e-9;
     bool bfkl=false;
     
@@ -49,7 +49,8 @@ int main(int argc, char* argv[])
         cout << "-minr minr: set smallest dipole size for the grid" << endl;
         cout << "-output file: save output to given file" << endl;
         cout << "-rc [CONSTANT,PARENT,BALITSKY,KW,MS]: set RC prescription" << endl;
-        cout << "-ic [GBW, MV] params, MV params: qsqr anomalous_dim x0" << endl;
+        cout << "-ic [MV, FILE] params, MV params: qsqr anomalous_dim x0" << endl;
+        cout <<"                        FILE params: filename x0" << endl;
         cout << "-alphas_scaling factor: scale \\lambdaQCD^2 by given factor" << endl;
         cout << "-ystep step: set rapidity step size" << endl;
         cout << "-bfkl: solve bfkl equation, no bk" << endl;
@@ -60,6 +61,7 @@ int main(int argc, char* argv[])
      ******************/
      
     N = new AmplitudeR();
+    InitialCondition *ic=NULL;
 
     for (int i=1; i<argc; i++)
     {
@@ -90,22 +92,31 @@ int main(int argc, char* argv[])
             if (string(argv[i+1])=="GBW")
             {
 				cerr << "GBW is is not supported" << endl;
-                ic = GBW;
             }
             else if (string(argv[i+1])=="MV")
             {
-				ic = MVic;
 				double qsqr, x0, gamma;
 				qsqr = StrToReal(argv[i+2]);
 				gamma = StrToReal(argv[i+3]);
 				x0 = StrToReal(argv[i+4]);
-				MV ic;
-				ic.SetQsqr(qsqr);
-				ic.SetAnomalousDimension(gamma);
-				ic.SetX0(x0);
-				ic.SetLambdaQcd(0.241);
+				MV *tmpic = new MV();
+				tmpic->SetQsqr(qsqr);
+				tmpic->SetAnomalousDimension(gamma);
+				tmpic->SetX0(x0);
+				tmpic->SetLambdaQcd(0.241);
 				N->SetLambdaQcd(0.241);
-				N->SetInitialCondition(&ic);  
+				N->SetInitialCondition(tmpic);  
+				ic=tmpic;
+			}
+			else if (string(argv[i+1])=="FILE")
+			{
+				std::string fname = argv[i+2];
+				IC_datafile *tmpic=new IC_datafile();
+				tmpic->LoadFile(fname);
+				tmpic->SetX0(StrToReal(argv[i+3]));
+				N->SetInitialCondition(tmpic);
+				ic = tmpic;
+				
 			}
             else
             {
@@ -168,6 +179,8 @@ int main(int argc, char* argv[])
     cout << "# Done!" << endl;
 
     delete N;
+    if (ic!=NULL)
+		delete ic;
     return 0;
 }
 

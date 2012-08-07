@@ -34,7 +34,7 @@ void MV::SetLambdaQcd(double lambda)
 std::string MV::GetString()
 {
 	std::stringstream ss;
-	ss << "MV model, Q_s0^2 = " << qs0sqr << " GeV^2, \\gamma = " << gamma
+	ss << "MV model, Q_s0^2 = " << qs0sqr << " GeV^2, \\gamma = " << anomalous_dimension
 		<< ", x0=" << x0 << ", \\Lambda_QCD = " << lambdaqcd << " GeV";
 	return ss.str();
 }

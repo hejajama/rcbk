@@ -18,6 +18,7 @@ AmplitudeR::AmplitudeR()
     Csqr=1.0;
     minr=1e-9;
     lambdaqcd=0.241;
+	maxalphas=0.7;
     
 }
 
@@ -177,12 +178,18 @@ REAL AmplitudeR::MinR()
 REAL AmplitudeR::RMultiplier()
 {
     //return 1.08;
-    return std::pow(50.0/MinR(), 1.0/(RPoints()-1));
+    double max = 50;
+    if (max > initial_condition->MaxR())
+		max = 0.9999 * initial_condition->MaxR();
+    return std::pow(max/MinR(), 1.0/(RPoints()-1));
 }
 
 REAL AmplitudeR::MaxR()
 {
-    return MinR()*std::pow(RMultiplier(), RPoints()-1);
+    double max = MinR()*std::pow(RMultiplier(), RPoints()-1);
+    if (max > initial_condition->MaxR())
+		max = 0.9999 * initial_condition->MaxR();
+	return max;
 }
 
 REAL AmplitudeR::MaxLnR()
@@ -272,6 +279,13 @@ void AmplitudeR::SetMinR(REAL minr_)
         << "can't do anything... " << LINEINFO << endl;
         return;
     }
+    if (minr_ < initial_condition->MinR())
+    {
+		cerr << "Can't set minr to " << minr_ << " as the smallest r allowed "
+		<< "by the IC is " << initial_condition->MinR() 
+		<<", setting minr=" << initial_condition->MinR()  << endl;
+		minr_ = initial_condition->MinR()*1.000000001;
+	}
     minr=minr_;
 }
 
