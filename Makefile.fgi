@@ -1,0 +1,21 @@
+CXXFLAGS = `gsl-config --cflags` -O3 -fopenmp -pedantic -I ../amplitudelib #-fopenmp# -I ./libbci-1.1.0/ 
+LDFLAGS = `gsl-config --libs`  
+
+include filelist.m
+
+CC = icc
+CXX = icpc
+FORT = ifort
+
+all: rbk
+
+rbk: $(OBJECTS) 
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJECTS) -o rbk 
+.cpp.o:
+	$(CXX) $(CXXFLAGS) $< -c -o $@
+.c.o:
+	$(CC) $(CXXFLAGS) $< -c -o $@
+
+clean:
+	rm -f $(OBJECTS) $(AMPLITUDELIBO)
+	rm -f bk	
