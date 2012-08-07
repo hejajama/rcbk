@@ -1,6 +1,6 @@
 /*
  * BK equation solver
- * Heikki Mäntysaari <heikki.mantysaari@jyu.fi>, 2011
+ * Heikki Mäntysaari <heikki.mantysaari@jyu.fi>, 2011-2012
  */
 
 #include <tools/tools.hpp>
@@ -15,8 +15,11 @@
 #include <iomanip>
 #include <csignal>
 
+#include "ic.hpp"
+#include "mv.hpp"
 
-const std::string version = "v. 0.1  2011-xx-xx";
+
+const std::string version = "v. 0.9  2012-xx-xx";
 
 // We need global variables so that the signal handler works
 std::string output="output.dat";
@@ -46,7 +49,7 @@ int main(int argc, char* argv[])
         cout << "-minr minr: set smallest dipole size for the grid" << endl;
         cout << "-output file: save output to given file" << endl;
         cout << "-rc [CONSTANT,PARENT,BALITSKY,KW,MS]: set RC prescription" << endl;
-        cout << "-ic [GBW, MV, MV_Au, MV1, MV1_dAu, AN06, MV1_OSC]: set initial condition" << endl;
+        cout << "-ic [GBW, MV] params, MV params: qsqr anomalous_dim x0" << endl;
         cout << "-alphas_scaling factor: scale \\lambdaQCD^2 by given factor" << endl;
         cout << "-ystep step: set rapidity step size" << endl;
         cout << "-bfkl: solve bfkl equation, no bk" << endl;
@@ -55,6 +58,8 @@ int main(int argc, char* argv[])
     /*******************
      * Handle parameters
      ******************/
+     
+    N = new AmplitudeR();
 
     for (int i=1; i<argc; i++)
     {
@@ -83,19 +88,25 @@ int main(int argc, char* argv[])
         else if (string(argv[i])=="-ic")
         {
             if (string(argv[i+1])=="GBW")
+            {
+				cerr << "GBW is is not supported" << endl;
                 ic = GBW;
+            }
             else if (string(argv[i+1])=="MV")
-                ic = MV;
-            else if (string(argv[i+1])=="MV1")
-                ic = MV1;
-            else if (string(argv[i+1])=="AN06")
-                ic = AN06;
-            else if (string(argv[i+1])=="MV1_dAu")
-                ic = MV1_dAu;
-            else if (string(argv[i+1])=="MV1_OSC")
-                ic = MV1_OSC;
-            else if (string(argv[i+1])=="MV_Au")
-				ic = MV_Au;
+            {
+				ic = MVic;
+				double qsqr, x0, gamma;
+				qsqr = StrToReal(argv[i+2]);
+				gamma = StrToReal(argv[i+3]);
+				x0 = StrToReal(argv[i+4]);
+				MV ic;
+				ic.SetQsqr(qsqr);
+				ic.SetAnomalousDimension(gamma);
+				ic.SetX0(x0);
+				ic.SetLambdaQcd(0.241);
+				N->SetLambdaQcd(0.241);
+				N->SetInitialCondition(&ic);  
+			}
             else
             {
                 cerr << "Unknown initial condition " << argv[i+1] << endl;
@@ -116,9 +127,7 @@ int main(int argc, char* argv[])
             return -1;
         }
     }
-    
-    N = new AmplitudeR();
-    N->SetInitialCondition(ic);
+
     N->SetMinR(minr);
     N->Initialize();
     Solver s(N);
@@ -139,25 +148,10 @@ int main(int argc, char* argv[])
     if (rc==MS) infostr << "Motyka&Stasto, kin. constraing";
     infostr << endl;
     if (rc!=CONSTANT)
-        infostr << "# Scaling factor in alpha_s: " << alphas_scaling << endl;
+        infostr << "# Scaling factor C^2 in alpha_s: " << N->GetAlphasScaling() << endl;
     
-    infostr << "# Initial condition is ";
-    if (ic==GBW)
-        infostr << "GBW 1-exp(-r^2Q_s^2/4)";
-    else if (ic == MV)
-        infostr << "MV 1-exp(-(r^2 Q_s^2)^\\gamma/4 log(1/r\\lambda_QCD + e) )";
-    else if (ic == MV_Au)
-		infostr << "Exponentiated MV, 1 - exp(-\\sigma_pp AT_A(b) N(r)"; 
-    else if (ic == MV1 or ic == MV1_dAu)
-        infostr << "MV 1-exp(-r^2 Q_s^2/4 log(1/r\\lambda_QCD + e) )";
-    else if (ic==AN06)
-        infostr << "AN06 1-exp(-(r^2Q_s^2)^\\gamma/4)";
-    else if (ic==MV1_OSC)
-        infostr << "MV1 with infrared oscillation regularization";
-    infostr << " x0=" << N->X0();
-    infostr << endl;
-    infostr <<"# Initial saturation scale Q_s^2=" << N->InitialSaturationScaleSqr()
-        << " GeV^2" << endl;
+    infostr << "# Initial condition is " << N->GetInitialCondition()->GetString()
+		<< endl;
      
     if (s.GetBfkl()) infostr <<"# Solving BFKL equation ";
     else infostr << "# Solving BK equation "; 
@@ -194,7 +188,7 @@ void SaveData()
     out << "###" << std::scientific << std::setprecision(15) <<
         N->RMultiplier()  << endl;
     out << "###" << N->RPoints() << endl;
-    out << "###" << N->X0() << endl;
+    out << "###" << N->GetInitialCondition()->X0() << endl;
 
     for (int yind=0; yind<N->YPoints(); yind++)
     {

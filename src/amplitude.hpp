@@ -9,11 +9,12 @@
 #include <tools/config.hpp>
 #include <vector>
 #include <cmath>
+#include "ic.hpp"
 
 enum InitialConditionR
 {
     GBW,    // ref 0902.1112, no anomalous dimension
-    MV,     // ref 0902.1112, anomalous dimension
+    MVic,     // ref 0902.1112, anomalous dimension
     MV_Au,	// Glauber-type expenentiated MVgamma
     MV1,    // ref 0902.1112, same as MV but w.o. anomalous dimension
             //    no fitted parameters
@@ -38,8 +39,6 @@ public:
 
     // Returns index of the added rapidity
     int AddRapidity(REAL y);
-
-    REAL InitialCondition(REAL r, REAL b);
 
     void AddDataPoint(int yind, int rind, int bind, int thetaind, REAL value);
 
@@ -70,14 +69,13 @@ public:
     std::vector<REAL>& LogBVals();
     std::vector<REAL>& ThetaVals();
     
-    InitialConditionR InitialCondition();
-    void SetInitialCondition(InitialConditionR ic_);
+    InitialCondition* GetInitialCondition();
+    void SetInitialCondition(InitialCondition* ic_);
     
     void SetAlphasScaling(REAL scaling);
-
-    REAL InitialSaturationScaleSqr();
-
-    REAL X0();
+    double GetAlphasScaling();
+    void SetLambdaQcd(double lambda);
+    double GetLambdaQcd();	// in GeV
 
 
     // amplitude[yind][rind][bind][thetaind]
@@ -91,14 +89,13 @@ private:
     bool bdep;      // do we take into account impact parameter dependency
     InitialConditionR ic;
     
+    InitialCondition *initial_condition;
+    
     // Parameters which may depend on the IC
-    REAL lambdaqcd2;
-    REAL alphas_scaling;
-    REAL Cfactorsqr;   // \alpha_s \sim 1/log(C^2/(r^2\lambdaqcd^2))
+    REAL Csqr;   // \alpha_s \sim 1/log(4 C^2/(r^2\lambdaqcd^2))
     REAL maxalphas;
     REAL minr;
-    REAL Q_s0sqr;    // Initial saturation scale sqr
-    REAL x0;
+    double lambdaqcd;
 };
 
 const REAL MINLN_N = -999;
