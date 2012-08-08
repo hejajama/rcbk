@@ -2,6 +2,7 @@
 #include <sstream>
 #include <string>
 #include <cmath>
+#include <tools/config.hpp>
 
 double MV::DipoleAmplitude(double r, double b)
 {
@@ -47,6 +48,6 @@ MV::MV()
 {
 	qs0sqr = 0.72;
 	x0=0.007;
-	lambdaqcd=0.241;
+	lambdaqcd=LAMBDAQCD;
 	anomalous_dimension=1;
 }

@@ -11,18 +11,6 @@
 #include <cmath>
 #include "ic.hpp"
 
-enum InitialConditionR
-{
-    GBW,    // ref 0902.1112, no anomalous dimension
-    MVic,     // ref 0902.1112, anomalous dimension
-    MV_Au,	// Glauber-type expenentiated MVgamma
-    MV1,    // ref 0902.1112, same as MV but w.o. anomalous dimension
-            //    no fitted parameters
-    AN06,    // ref e.g. 0704.012, 1_exp(-(rQ_s)^(2\gamma)/4)
-    MV1_dAu, // ref 1001.1378, RHIC dAu data
-    MV1_OSC // ref 0708.0231, infrared-oscillation-cancelling factor
-};
-
 // AmplitudeR::Initialize() must be called before this class is used, but first
 // one needs to set up this (e.g. call SetInitialCondition etc).
 
@@ -62,6 +50,7 @@ public:
     
     // Initial condition dependent \\alpha_s
     REAL Alpha_s_ic(REAL rsqr, REAL scaling=1.0);
+    std::string Alpha_s_str();
 
     bool ImpactParameter(); // return bdep
 
@@ -87,7 +76,6 @@ private:
     std::vector<REAL> rvals;
     std::vector<REAL> thetavals;
     bool bdep;      // do we take into account impact parameter dependency
-    InitialConditionR ic;
     
     InitialCondition *initial_condition;
     

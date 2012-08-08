@@ -34,8 +34,7 @@ class Solver
 
         void SetRunningCoupling(RunningCoupling rc_);
         RunningCoupling GetRunningCoupling();
-        void SetAlphasScaling(REAL scaling);
-        REAL GetAlphasScaling();
+
         void SetDeltaY(REAL dy);
 
         void SetBfkl(bool bfkl_);
@@ -45,7 +44,6 @@ class Solver
         AmplitudeR* N;
 
         RunningCoupling rc;
-        REAL alphas_scaling;
         REAL deltay;
         bool bfkl;
 

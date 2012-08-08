@@ -349,32 +349,9 @@ REAL Inthelperf_thetaint(REAL theta, void* p)
         return result;
     }
 
-    ///TODO
-    /*
-    REAL r12sqr = std::exp(2.0*par->lnr01)+std::exp(2.0*par->lnr02)
-        - 2.0*std::exp(par->lnr01+par->lnr02)*std::cos(theta);
-    REAL b02sqr = std::exp(2.0*par->lnb01) + 0.25*std::exp(2.0*par->lnr01)
-        + 0.25*std::exp(2.0*par->lnr02)
-        - std::exp(par->lnb01+par->lnr01)*std::cos(par->thetab)
-        + std::exp(par->lnb01 + par->lnr02)*std::cos(par->thetab - theta)
-        - 0.5*std::exp(par->lnr01+par->lnr02)*std::cos(theta);
-    REAL b12sqr = std::exp(2.0*par->lnb01)+0.25*std::exp(2.0*par->lnr02)
-        + std::exp(par->lnb01+par->lnr02)*std::cos(par->thetab - theta);
+	cerr << "Impact parameter dependence is not supported!" << endl;
+	exit(1);
 
-    REAL thetab12 = std::asin( std::sqrt(std::exp(2.0*par->lnr02)/r12sqr
-                                    *std::sin(theta)) ) - (M_PI - par->thetab);
-
-    REAL  n02 = par->Solv->InterpolateN(par->lnr02, std::log(std::sqrt(b02sqr)),
-            par->thetab - theta, par->data);
-    REAL n12 = par->Solv->InterpolateN(std::log(std::sqrt(r12sqr)),
-            std::log(std::sqrt(b12sqr)), thetab12, par->data );
-    
-    REAL result = 0;/*std::exp(n02) + std::exp(n12) - std::exp(par->ln_n01)
-            - std::exp(n02+n12); ///FIXME
-
-    //result *= par->Solv->Kernel(std::exp(par->lnr01), std::exp(par->lnb01), par->thetab,
-    //        std::exp(par->lnr02), theta, par->y);
-    */
     return 0;
 }
 
@@ -452,20 +429,13 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
                  * r02dotr12 / (SQR(r02)*SQR(r12) )
                 + alphas_r12 / SQR(r12)
                 );
-            /*if (result<-1e-3)
-            cout << "r01 " << r01 << " r02 " << r02 << " r12 " << r12 << " Rsqr " << Rsqr
-                << " bal " << Nc/(2.0*SQR(M_PI))*alphas_r01
-            * (
-            SQR(r01) / ( SQR(r12) * SQR(r02) )
-            + 1.0/SQR(r02)*(alphas_r02/alphas_r12 - 1.0)
-            + 1.0/SQR(r12)*(alphas_r12/alphas_r02 - 1.0)
-            )
-            << " kw " << result << endl;
-            */
             break;
         case MS:
             // Motyka & Staśto, 0901.4949: kinematical constraint, bessel kernel
             ///FIXME: 0.01 factor????
+            cerr << "Motyka&Stasto kin. constraint kernel is most likely wrong..."
+				<<" Check before you use this! " << LINEINFO << endl;
+				
             z = 0.01*std::exp(-y); zsqrt = std::exp(-0.5*y);
 
             // r02 dot r12
@@ -567,17 +537,6 @@ void Solver::SetRunningCoupling(RunningCoupling rc_)
 RunningCoupling Solver::GetRunningCoupling()
 {
     return rc;
-}
-
-void Solver::SetAlphasScaling(REAL scaling)
-{
-    alphas_scaling = scaling;
-    N->SetAlphasScaling(scaling);
-}
-
-REAL Solver::GetAlphasScaling()
-{
-    return alphas_scaling;
 }
 
 void Solver::SetDeltaY(REAL dy)

@@ -7,6 +7,8 @@
 #include <tools/tools.hpp>
 #include <cmath>
 #include <iostream>
+#include <string>
+#include <sstream>
 #include <gsl/gsl_sf_bessel.h>
 #include <gsl/gsl_integration.h>
 
@@ -148,6 +150,15 @@ REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
     return alpha;
 
 }
+
+std::string AmplitudeR::Alpha_s_str()
+{
+	std::stringstream ss;
+	ss << "\\alpha_s = 12 \\pi / [ (33.0 - 2.0*2Nf) * log(4.0*C^2/(r^2*lambdaqcd^2) ], C^2=" << Csqr << ", lambdaqcd=" << lambdaqcd << " GeV, Nf=" << Nf;
+	return ss.str();
+}
+
+
 int AmplitudeR::RPoints()
 {
     return 400;

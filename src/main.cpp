@@ -144,7 +144,7 @@ int main(int argc, char* argv[])
     Solver s(N);
     s.SetBfkl(bfkl);
     s.SetRunningCoupling(rc);
-    s.SetAlphasScaling(alphas_scaling);
+    N->SetAlphasScaling(alphas_scaling);
     s.SetDeltaY(dy);
 
     infostr << "#";
@@ -163,7 +163,7 @@ int main(int argc, char* argv[])
     
     infostr << "# Initial condition is " << N->GetInitialCondition()->GetString()
 		<< endl;
-     
+    infostr << "# " <<  N->Alpha_s_str() << endl;
     if (s.GetBfkl()) infostr <<"# Solving BFKL equation ";
     else infostr << "# Solving BK equation "; 
     infostr << "up to y=" << maxy << endl;
