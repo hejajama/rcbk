@@ -18,6 +18,8 @@
 #include "ic.hpp"
 #include "mv.hpp"
 #include "ic_datafile.hpp"
+#include "gbw.hpp"
+#include "ic_special.hpp"
 
 
 const std::string version = "v. 0.9b  2012-xx-xx";
@@ -49,11 +51,13 @@ int main(int argc, char* argv[])
         cout << "-minr minr: set smallest dipole size for the grid" << endl;
         cout << "-output file: save output to given file" << endl;
         cout << "-rc [CONSTANT,PARENT,BALITSKY,KW,MS]: set RC prescription" << endl;
-        cout << "-ic [MV, FILE] params, MV params: qsqr anomalous_dim x0" << endl;
-        cout <<"                        FILE params: filename x0" << endl;
+        cout << "-ic [MV, GBW, FILE, SPECIAL] params, MV and GBW params: qsqr anomalous_dim x0" << endl;
+        cout <<"                                      FILE params: filename x0" << endl;
+        cout << "                                     SPECIAL: use hardcoded IC" << endl;
         cout << "-alphas_scaling factor: scale \\lambdaQCD^2 by given factor" << endl;
         cout << "-ystep step: set rapidity step size" << endl;
         cout << "-bfkl: solve bfkl equation, no bk" << endl;
+        return 0;
     }
 
     /*******************
@@ -93,20 +97,36 @@ int main(int argc, char* argv[])
             {
 				cerr << "GBW is is not supported" << endl;
             }
-            else if (string(argv[i+1])=="MV")
+            else if (string(argv[i+1])=="MV" or string(argv[i+1])=="GBW" )
             {
 				double qsqr, x0, gamma;
 				qsqr = StrToReal(argv[i+2]);
 				gamma = StrToReal(argv[i+3]);
 				x0 = StrToReal(argv[i+4]);
-				MV *tmpic = new MV();
-				tmpic->SetQsqr(qsqr);
-				tmpic->SetAnomalousDimension(gamma);
-				tmpic->SetX0(x0);
-				tmpic->SetLambdaQcd(0.241);
+				
+				if (string(argv[i+1])=="MV")
+				{
+					MV *tmpic = new MV();
+					tmpic->SetQsqr(qsqr);
+					tmpic->SetAnomalousDimension(gamma);
+					tmpic->SetX0(x0);
+					tmpic->SetLambdaQcd(0.241);
+					N->SetInitialCondition(tmpic); 
+					ic=tmpic;
+				}
+				else
+				{
+					GBW *tmpic = new GBW();
+					tmpic->SetQsqr(qsqr);
+					tmpic->SetAnomalousDimension(gamma);
+					tmpic->SetX0(x0);
+					tmpic->SetLambdaQcd(0.241);
+					N->SetInitialCondition(tmpic); 
+					ic=tmpic;
+				}
 				N->SetLambdaQcd(0.241);
-				N->SetInitialCondition(tmpic);  
-				ic=tmpic;
+				 
+				
 			}
 			else if (string(argv[i+1])=="FILE")
 			{
@@ -118,6 +138,11 @@ int main(int argc, char* argv[])
 				ic = tmpic;
 				
 			}
+			else if (string(argv[i+1])=="SPECIAL")
+			{
+				IC_Special *tmpic = new IC_Special();
+				ic = tmpic;
+            }
             else
             {
                 cerr << "Unknown initial condition " << argv[i+1] << endl;
