@@ -14,4 +14,4 @@ rbk: $(OBJECTS)
 
 clean:
 	rm -f $(OBJECTS)
-	rm -f bk	
+	rm -f rbk	

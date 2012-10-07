@@ -114,7 +114,7 @@ void Solver::Solve(REAL maxy)
 
 int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
 {
-    cout << "Evolving with y=" <<y << endl;
+    //cout << "Evolving with y=" <<y << endl;
     EvolutionHelperR* par = (EvolutionHelperR*)params;
     //int vecsize = par->N->BPoints()*par->N->RPoints()*par->N->ThetaPoints();
 
@@ -128,8 +128,11 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
     }
     Interpolator interp(tmprarray, tmpyarray, par->N->RPoints());
     interp.Initialize();
+    interp.SetFreeze(true);
+    interp.SetUnderflow(0);
+    interp.SetOverflow(1.0);
     
-    #pragma omp parallel for schedule(dynamic, 5) // firstprivate(interp) 
+    #pragma omp parallel for schedule(dynamic, 15) // firstprivate(interp) 
     for (int rind=0; rind < par->N->RPoints(); rind++)
     {
         for (int thetaind=0; thetaind < par->N->ThetaPoints(); thetaind++)
@@ -205,7 +208,7 @@ REAL Solver::RapidityDerivative(REAL y,
             REAL lnr01, REAL lnb01, REAL thetab, const REAL* data,
             Interpolator *interp)
 {
-    const int RINTPOINTS = 700;
+    const int RINTPOINTS = 100;
     const REAL RINTACCURACY = 0.01;
 
     if (lnr01 <= N->LogRVal(0)) lnr01*=0.999;
@@ -245,19 +248,10 @@ REAL Solver::RapidityDerivative(REAL y,
     if (status)
     {
         #pragma omp critical
-        cerr << "RInt failed at " << LINEINFO << ": lnr=" << lnr01 <<", thetab="
+        cerr << "RInt failed at " << LINEINFO << ": lnr=" << lnr01 <<", r= " << std::exp(lnr01) <<", thetab="
         << thetab <<", lnb01=" << lnb01 <<", result " << result << ", relerr "
         << std::abs(abserr/result) << endl;
     }
-
-    
-    /*if (result<-1e-4)
-        #pragma omp critical
-        cerr << "Amplitude seems to decrease from " << helper.n01
-        << " at r01 = " << std::exp(lnr01)
-        << ", y=" << y << " result " << result << " " << LINEINFO 
-        << " (NOTE: this is not an error!)" << endl;
-        */
 
     return result;
 }
@@ -469,7 +463,7 @@ REAL Solver::InterpolateN(REAL lnr, REAL lnb, REAL thetab, const REAL* data)
     cerr << "Solver::InterpolateN called, why?" << endl;
     // array format: ind = rind*BPoitns()*ThetaPoints()+bind*ThetaPoints()+Theta
     if (lnr > N->MaxLnR()) lnr = N->MaxLnR()*0.999;
-    else if (lnr < N->MinLnR()) lnr = N->MinLnR()*0.999;  ///TODO: Same check for lnb
+    else if (lnr < N->MinLnR()) lnr = N->MinLnR()*0.999; 
     int rind = FindIndex(lnr, N->LogRVals());
     if (rind<0) rind=0;
     int bind, thetaind;

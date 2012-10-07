@@ -47,12 +47,7 @@ void AmplitudeR::Initialize()
         rvals.push_back(std::exp(logrvals[rind]));
         if (ImpactParameter()) logbvals.push_back(logrvals[rind]);
     }
-    if (logrvals[logrvals.size()-1]<0)
-    {
-        cerr << "MaxR must be at least " << std::exp(logrvals[logrvals.size()-1])
-            << endl;
-        return;
-    }
+
 
     AddRapidity(0);
 
@@ -130,11 +125,19 @@ REAL AmplitudeR::Ntable(int yind, int rind, int bind, int thetaind)
 /*
  * Initial condition dependent strong coupling constant
  * \lambda_{QCD}^2 and the scaling factor alphas_scaling
- * \əlpha_s ~ 1/(log (4C^2/(r^2 lambdaqcd))), and C^2=Csqr
+ * \alpha_s ~ 1/(log (4C^2/(r^2 lambdaqcd))), and C^2=Csqr
  * if scaling is given, it overrides saved alphas_scaling
  */
 REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
 {
+
+	///TODO! VÄLIAIKAINEN T.L. ANALYYSIIN
+/*	
+	const double c=0.2; 
+	return 12.0*M_PI / ( ( 33.0-2.0*3.0) * std::log(
+		std::pow( std::pow(2.5*2.5,1.0/c) + std::pow(rsqr / 4.0, -1.0/c), c)	// rsqr = r^2*lambdaqcd^2, dimensioton
+		) );
+*/	
     REAL scalefactor=0;
     if (std::abs(scaling-1.0)>0.0001)   // Don't use stored value
         scalefactor = scaling;
@@ -142,7 +145,6 @@ REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
         scalefactor = 4.0*Csqr;
     
     if (scalefactor/(rsqr*lambdaqcd*lambdaqcd) < 1.0) return maxalphas;
-    
     REAL alpha = 12.0*M_PI/( (33.0-2.0*Nf)*std::log(scalefactor/ (rsqr*lambdaqcd*lambdaqcd) ) );
     if (alpha>maxalphas)
         return maxalphas;
@@ -190,16 +192,16 @@ REAL AmplitudeR::RMultiplier()
 {
     //return 1.08;
     double max = 50;
-    if (max > initial_condition->MaxR())
-		max = 0.9999 * initial_condition->MaxR();
+    //if (max > initial_condition->MaxR())
+	//	max = 0.9999 * initial_condition->MaxR();
     return std::pow(max/MinR(), 1.0/(RPoints()-1));
 }
 
 REAL AmplitudeR::MaxR()
 {
     double max = MinR()*std::pow(RMultiplier(), RPoints()-1);
-    if (max > initial_condition->MaxR())
-		max = 0.9999 * initial_condition->MaxR();
+    //if (max > initial_condition->MaxR())
+	//	max = 0.9999 * initial_condition->MaxR();
 	return max;
 }
 
@@ -290,13 +292,17 @@ void AmplitudeR::SetMinR(REAL minr_)
         << "can't do anything... " << LINEINFO << endl;
         return;
     }
-    if (minr_ < initial_condition->MinR())
-    {
-		cerr << "Can't set minr to " << minr_ << " as the smallest r allowed "
+    
+	if (minr_ < initial_condition->MinR())
+	{
+		cout << "# NOTICE: smallest r allowed by IC is " << initial_condition->MinR()
+			<< ": most likely you are using datafile IC, and N at smaller r is set to 0" << endl;
+		/*cerr << "Can't set minr to " << minr_ << " as the smallest r allowed "
 		<< "by the IC is " << initial_condition->MinR() 
 		<<", setting minr=" << initial_condition->MinR()  << endl;
-		minr_ = initial_condition->MinR()*1.000000001;
+		minr_ = initial_condition->MinR()*1.000000001;*/
 	}
+	
     minr=minr_;
 }
 

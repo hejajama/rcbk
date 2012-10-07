@@ -34,6 +34,7 @@ void SigIntHandler(int param);
 
 int main(int argc, char* argv[])
 {
+
     gsl_set_error_handler(&ErrHandler);
     std::signal(SIGINT, SigIntHandler);
     
@@ -93,11 +94,7 @@ int main(int argc, char* argv[])
         }
         else if (string(argv[i])=="-ic")
         {
-            if (string(argv[i+1])=="GBW")
-            {
-				cerr << "GBW is is not supported" << endl;
-            }
-            else if (string(argv[i+1])=="MV" or string(argv[i+1])=="GBW" )
+			if (string(argv[i+1])=="MV" or string(argv[i+1])=="GBW" )
             {
 				double qsqr, x0, gamma;
 				qsqr = StrToReal(argv[i+2]);
@@ -135,12 +132,14 @@ int main(int argc, char* argv[])
 				tmpic->LoadFile(fname);
 				tmpic->SetX0(StrToReal(argv[i+3]));
 				N->SetInitialCondition(tmpic);
+				minr = tmpic->MinR();
 				ic = tmpic;
 				
 			}
 			else if (string(argv[i+1])=="SPECIAL")
 			{
 				IC_Special *tmpic = new IC_Special();
+				N->SetInitialCondition(tmpic);
 				ic = tmpic;
             }
             else

@@ -55,6 +55,9 @@ int IC_datafile::LoadFile(std::string file)
     // Interpolator
     interpolator = new Interpolator(rvals, nvals);
     interpolator->Initialize();
+    interpolator->SetFreeze(true);
+    interpolator->SetUnderflow(0.0);
+    interpolator->SetOverflow(1.0);
     
     return 0;
 }
