@@ -132,12 +132,12 @@ REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
 {
 
 	///TODO! VÄLIAIKAINEN T.L. ANALYYSIIN
-/*	
+	
 	const double c=0.2; 
 	return 12.0*M_PI / ( ( 33.0-2.0*3.0) * std::log(
 		std::pow( std::pow(2.5*2.5,1.0/c) + std::pow(rsqr / 4.0, -1.0/c), c)	// rsqr = r^2*lambdaqcd^2, dimensioton
 		) );
-*/	
+	
     REAL scalefactor=0;
     if (std::abs(scaling-1.0)>0.0001)   // Don't use stored value
         scalefactor = scaling;

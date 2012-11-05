@@ -15,7 +15,9 @@ enum RunningCoupling
     PARENT,
     KW,
     BALITSKY,
-    MS  // Motyka & Staśto, 0901.4949: kinematical constraint, bessel kernel
+    MS,  // Motyka & Staśto, 0901.4949: kinematical constraint, bessel kernel
+    JIMWLK,
+    JIMWLK_SQRTALPHA
 };
 
 class Solver

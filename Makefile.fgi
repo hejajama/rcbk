@@ -10,7 +10,7 @@ FORT = ifort
 all: rbk
 
 rbk: $(OBJECTS) 
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJECTS) -o rbk 
+	$(CXX) $(OBJECTS) $(LDFLAGS) $(CXXFLAGS) -o rbk 
 .cpp.o:
 	$(CXX) $(CXXFLAGS) $< -c -o $@
 .c.o:

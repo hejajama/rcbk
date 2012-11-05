@@ -86,6 +86,10 @@ int main(int argc, char* argv[])
                 rc = KW;
             else if (string(argv[i+1])=="MS")
                 rc = MS;
+            else if (string(argv[i+1])=="JIMWLK")
+				rc = JIMWLK;
+			else if (string(argv[i+1])=="JIMWLK_SQRTALPHA")
+				rc = JIMWLK_SQRTALPHA;
             else
             {
                 cerr << "Unknown running coupling " << argv[i+1] << endl;

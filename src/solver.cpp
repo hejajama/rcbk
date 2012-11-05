@@ -390,6 +390,20 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
             + 1.0/SQR(r12)*(alphas_r12/alphas_r02 - 1.0)
             );
             break;
+        case JIMWLK:  // Similar than BALITSKY, slightly simpler (TL&HM JIMWLK paper)
+            result = Nc/(2.0*SQR(M_PI))
+            * (
+            alphas_r02/SQR(r02) + alphas_r12/SQR(r12)
+				+ alphas_r01* ( SQR(r01/(r02*r12)) - 1.0/SQR(r02) - 1.0/SQR(r12)) 	// = -2 (x-z).(y-z)/(x-z)^2(y-z)^2
+            );
+            break;
+        case JIMWLK_SQRTALPHA:  // Similar than BALITSKY, slightly simpler (TL&HM JIMWLK paper)
+            result = Nc/(2.0*SQR(M_PI))
+            * (
+            alphas_r02/SQR(r02) + alphas_r12/SQR(r12)
+				+ std::sqrt(alphas_r02*alphas_r12)* ( SQR(r01/(r02*r12)) - 1.0/SQR(r02) - 1.0/SQR(r12)) 	// = -2 (x-z).(y-z)/(x-z)^2(y-z)^2
+            );
+            break;
         case KW:
             if (std::abs(SQR(r02)-SQR(r12)) < SQR(N->MinR())/1000) return 0;
 
