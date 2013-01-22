@@ -16,7 +16,6 @@ enum RunningCoupling
     KW,
     BALITSKY,
     MS,  // Motyka & Staśto, 0901.4949: kinematical constraint, bessel kernel
-    JIMWLK,
     JIMWLK_SQRTALPHA
 };
 

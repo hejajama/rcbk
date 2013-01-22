@@ -51,8 +51,8 @@ int main(int argc, char* argv[])
         cout << "-maxy y: set max rapidity" << endl;
         cout << "-minr minr: set smallest dipole size for the grid" << endl;
         cout << "-output file: save output to given file" << endl;
-        cout << "-rc [CONSTANT,PARENT,BALITSKY,KW,MS]: set RC prescription" << endl;
-        cout << "-ic [MV, GBW, FILE, SPECIAL] params, MV and GBW params: qsqr anomalous_dim x0" << endl;
+        cout << "-rc [CONSTANT,PARENT,BALITSKY,KW,MS,JIMWLK_SQRTALPHA]: set RC prescription" << endl;
+        cout << "-ic [MV, GBW, FILE, SPECIAL] params, MV and GBW params: qsqr anomalous_dim x0 ec   [ec only for MV]" << endl;
         cout <<"                                      FILE params: filename x0" << endl;
         cout << "                                     SPECIAL: use hardcoded IC" << endl;
         cout << "-alphas_scaling factor: scale \\lambdaQCD^2 by given factor" << endl;
@@ -86,8 +86,6 @@ int main(int argc, char* argv[])
                 rc = KW;
             else if (string(argv[i+1])=="MS")
                 rc = MS;
-            else if (string(argv[i+1])=="JIMWLK")
-				rc = JIMWLK;
 			else if (string(argv[i+1])=="JIMWLK_SQRTALPHA")
 				rc = JIMWLK_SQRTALPHA;
             else
@@ -107,11 +105,13 @@ int main(int argc, char* argv[])
 				
 				if (string(argv[i+1])=="MV")
 				{
+					double ec = StrToReal(argv[i+5]);
 					MV *tmpic = new MV();
 					tmpic->SetQsqr(qsqr);
 					tmpic->SetAnomalousDimension(gamma);
 					tmpic->SetX0(x0);
-					tmpic->SetLambdaQcd(0.241);
+					tmpic->SetLambdaQcd(0.2);
+					tmpic->SetE(ec);
 					N->SetInitialCondition(tmpic); 
 					ic=tmpic;
 				}
@@ -125,7 +125,7 @@ int main(int argc, char* argv[])
 					N->SetInitialCondition(tmpic); 
 					ic=tmpic;
 				}
-				N->SetLambdaQcd(0.241);
+				N->SetLambdaQcd(0.2);
 				 
 				
 			}

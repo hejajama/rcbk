@@ -20,7 +20,7 @@ AmplitudeR::AmplitudeR()
     Csqr=1.0;
     minr=1e-9;
     lambdaqcd=0.241;
-	maxalphas=0.7;
+	maxalphas=1.0;
     
 }
 
@@ -133,11 +133,18 @@ REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
 
 	///TODO! VÄLIAIKAINEN T.L. ANALYYSIIN
 	
-	const double c=0.2; 
-	return 12.0*M_PI / ( ( 33.0-2.0*3.0) * std::log(
-		std::pow( std::pow(2.5*2.5,1.0/c) + std::pow(rsqr / 4.0, -1.0/c), c)	// rsqr = r^2*lambdaqcd^2, dimensioton
+	const double c=1.5; 
+	const double mu0=2.5;
+	double scl = 1.26095;
+	return 4.0*M_PI / ( 9.0 * std::log(
+		std::pow( std::pow(mu0, 2.0/c) + std::pow(scl/rsqr, 1.0/c), c)	// rsqr = r^2*lambdaqcd^2, dimensioton
 		) );
-	
+		
+/*		
+       ///TODO: Väliaikainen: ipsat
+       //double musqr = 4.0/rsqr + 1.1699999;
+       //double ipsatalphas= 12.0*M_PI/( (33.0-2.0*Nf)*std::log(musqr/(lambdaqcd*lambdaqcd) ));
+       
     REAL scalefactor=0;
     if (std::abs(scaling-1.0)>0.0001)   // Don't use stored value
         scalefactor = scaling;
@@ -150,7 +157,7 @@ REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
         return maxalphas;
     
     return alpha;
-
+*/
 }
 
 std::string AmplitudeR::Alpha_s_str()
@@ -163,7 +170,7 @@ std::string AmplitudeR::Alpha_s_str()
 
 int AmplitudeR::RPoints()
 {
-    return 400;
+    return 500;
 }
 
 int AmplitudeR::YPoints()

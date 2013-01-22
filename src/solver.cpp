@@ -66,7 +66,7 @@ void Solver::Solve(REAL maxy)
     const gsl_odeiv_step_type * T = gsl_odeiv_step_rkf45; //2; //f45;
 
     gsl_odeiv_step * s    = gsl_odeiv_step_alloc (T, vecsize);
-    gsl_odeiv_control * c = gsl_odeiv_control_y_new (0.0, 0.01);    //abserr relerr
+    gsl_odeiv_control * c = gsl_odeiv_control_y_new (0.0, 0.005);    //abserr relerr
     gsl_odeiv_evolve * e  = gsl_odeiv_evolve_alloc (vecsize);
     REAL h = step;  // Initial ODE solver step size
     
@@ -147,8 +147,8 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
                 // we don't have to evolve it at large r
                 if (rind>10 and !par->S->GetBfkl())
                 {
-                    if (amplitude[rind-2]>0.9999 and amplitude[rind-1]>0.9999
-                        and amplitude[rind]>0.9999)
+                    if (amplitude[rind-2]>0.99999 and amplitude[rind-1]>0.99999
+                        and amplitude[rind]>0.99999)
                     {
                         dydt[tmpind]=0;
                         /*#pragma omp critical
@@ -209,7 +209,7 @@ REAL Solver::RapidityDerivative(REAL y,
             Interpolator *interp)
 {
     const int RINTPOINTS = 100;
-    const REAL RINTACCURACY = 0.01;
+    const REAL RINTACCURACY = 0.005;
 
     if (lnr01 <= N->LogRVal(0)) lnr01*=0.999;
     else if (lnr01 >= N->LogRVal(N->RPoints()-1)) lnr01*=0.999;
@@ -236,12 +236,12 @@ REAL Solver::RapidityDerivative(REAL y,
     gsl_integration_workspace *workspace 
      = gsl_integration_workspace_alloc(RINTPOINTS);
 
-    REAL minr = 0.5*(N->LogRVal(0) + N->LogRVal(1));
-    REAL maxr = 0.5*(N->LogRVal(N->RPoints()-1) + N->LogRVal(N->RPoints()-2));
+    REAL minlnr = std::log( 1.000001*N->RVal(0) );
+    REAL maxlnr = std::log( 0.99999*N->RVal(N->RPoints()-1) );
 
     int status; REAL result, abserr;
-    status=gsl_integration_qag(&fun, minr,
-            maxr, 0, RINTACCURACY, RINTPOINTS,
+    status=gsl_integration_qag(&fun, minlnr,
+            maxlnr, 0, RINTACCURACY, RINTPOINTS,
             GSL_INTEG_GAUSS51, workspace, &result, &abserr);
     gsl_integration_workspace_free(workspace);
 
@@ -260,8 +260,8 @@ REAL Inthelperf_rint(REAL lnr, void* p)
 {
     Inthelper_rthetaint* par = (Inthelper_rthetaint*)p;
 
-    const int THETAINTPOINTS = 800;
-    const REAL THETAINTACCURACY = 0.05;
+    const int THETAINTPOINTS = 200;
+    const REAL THETAINTACCURACY = 0.005;
 
     par->lnr02=lnr;
     //par->n02 = par->Solv->InterpolateN(lnr, 0, 0, par->data);
@@ -273,10 +273,10 @@ REAL Inthelperf_rint(REAL lnr, void* p)
     gsl_integration_workspace *workspace 
      = gsl_integration_workspace_alloc(THETAINTPOINTS);
 
-    REAL mintheta = 0.0001;
+    REAL mintheta = 0.0000001;
     REAL maxtheta = 2.0*M_PI-0.0001;
 
-    if (!par->N->ImpactParameter()) maxtheta=M_PI-0.0001;
+    if (!par->N->ImpactParameter()) maxtheta=M_PI-0.000001;
     if (par->Solv->GetRunningCoupling()!=CONSTANT)
          par->alphas_r02 = par->N->Alpha_s_ic(std::exp(2.0*lnr));
     else
@@ -389,13 +389,7 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
             + 1.0/SQR(r02)*(alphas_r02/alphas_r12 - 1.0)
             + 1.0/SQR(r12)*(alphas_r12/alphas_r02 - 1.0)
             );
-            break;
-        case JIMWLK:  // Similar than BALITSKY, slightly simpler (TL&HM JIMWLK paper)
-            result = Nc/(2.0*SQR(M_PI))
-            * (
-            alphas_r02/SQR(r02) + alphas_r12/SQR(r12)
-				+ alphas_r01* ( SQR(r01/(r02*r12)) - 1.0/SQR(r02) - 1.0/SQR(r12)) 	// = -2 (x-z).(y-z)/(x-z)^2(y-z)^2
-            );
+			return result;
             break;
         case JIMWLK_SQRTALPHA:  // Similar than BALITSKY, slightly simpler (TL&HM JIMWLK paper)
             result = Nc/(2.0*SQR(M_PI))

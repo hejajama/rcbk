@@ -25,11 +25,13 @@ class MV : public InitialCondition
 		void SetQsqr(double qsqr);
 		void SetAnomalousDimension(double gamma_);
 		void SetLambdaQcd(double lambda);
+		void SetE(double ec);	// coefficient c of e in Log[1/r\Lambda + cE]
 		std::string GetString();
 	private:
 		double qs0sqr;	// Q_{s0}^2 in GeV^2
 		double anomalous_dimension;	// anomalous dimension
 		double lambdaqcd;
+		double ec;	// coefficient c of e in Log[1/r\Lambda + cE]
 };
 
 
