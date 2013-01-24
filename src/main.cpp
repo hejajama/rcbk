@@ -1,6 +1,6 @@
 /*
  * BK equation solver
- * Heikki Mäntysaari <heikki.mantysaari@jyu.fi>, 2011-2012
+ * Heikki Mäntysaari <heikki.mantysaari@jyu.fi>, 2011-2013
  */
 
 #include <tools/tools.hpp>
@@ -44,6 +44,7 @@ int main(int argc, char* argv[])
     REAL alphas_scaling=1.0;
     REAL minr = 1e-9;
     bool bfkl=false;
+    double alphas_freeze_c = 0;	// sharp cutoff by default
     
     if (argc>1)  if (string(argv[1])=="-help")
     {
@@ -56,6 +57,7 @@ int main(int argc, char* argv[])
         cout <<"                                      FILE params: filename x0" << endl;
         cout << "                                     SPECIAL: use hardcoded IC" << endl;
         cout << "-alphas_scaling factor: scale \\lambdaQCD^2 by given factor" << endl;
+        cout << "-alphas_freeze_c c: alphas freezing in infrared, c=0 is sharp cutoff at maxalphas" << endl;
         cout << "-ystep step: set rapidity step size" << endl;
         cout << "-bfkl: solve bfkl equation, no bk" << endl;
         return 0;
@@ -110,7 +112,7 @@ int main(int argc, char* argv[])
 					tmpic->SetQsqr(qsqr);
 					tmpic->SetAnomalousDimension(gamma);
 					tmpic->SetX0(x0);
-					tmpic->SetLambdaQcd(0.2);
+					tmpic->SetLambdaQcd(0.241);
 					tmpic->SetE(ec);
 					N->SetInitialCondition(tmpic); 
 					ic=tmpic;
@@ -125,7 +127,7 @@ int main(int argc, char* argv[])
 					N->SetInitialCondition(tmpic); 
 					ic=tmpic;
 				}
-				N->SetLambdaQcd(0.2);
+				N->SetLambdaQcd(0.241);
 				 
 				
 			}
@@ -160,6 +162,8 @@ int main(int argc, char* argv[])
             minr = StrToReal(argv[i+1]);
         else if (string(argv[i])=="-bfkl")
             bfkl=true;
+        else if (string(argv[i])=="-alphas_freeze_c")
+			alphas_freeze_c = StrToReal(argv[i+1]);
         else if (string(argv[i]).substr(0,1)=="-")
         {
             cerr << "Unrecoginzed parameter " << argv[i] << endl;
@@ -173,6 +177,7 @@ int main(int argc, char* argv[])
     s.SetBfkl(bfkl);
     s.SetRunningCoupling(rc);
     N->SetAlphasScaling(alphas_scaling);
+    N->SetAlphasFreeze(alphas_freeze_c);
     s.SetDeltaY(dy);
 
     infostr << "#";
@@ -184,7 +189,7 @@ int main(int argc, char* argv[])
     if (rc==PARENT) infostr << "parent dipole";
     if (rc==BALITSKY) infostr << "Balitsky";
     if (rc==KW) infostr << "KW";
-    if (rc==MS) infostr << "Motyka&Stasto, kin. constraing";
+    if (rc==MS) infostr << "Motyka&Stasto, kin. constraint";
     infostr << endl;
     if (rc!=CONSTANT)
         infostr << "# Scaling factor C^2 in alpha_s: " << N->GetAlphasScaling() << endl;

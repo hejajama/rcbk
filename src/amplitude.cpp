@@ -20,7 +20,8 @@ AmplitudeR::AmplitudeR()
     Csqr=1.0;
     minr=1e-9;
     lambdaqcd=0.241;
-	maxalphas=1.0;
+	maxalphas=0.7;
+	alphas_freeze_c = 0;
     
 }
 
@@ -128,16 +129,33 @@ REAL AmplitudeR::Ntable(int yind, int rind, int bind, int thetaind)
  * \alpha_s ~ 1/(log (4C^2/(r^2 lambdaqcd))), and C^2=Csqr
  * if scaling is given, it overrides saved alphas_scaling
  */
+const double alphas_mu0=2.5;
+//double alphas_scl = 1.26095;
 REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
 {
+	if (std::abs(scaling-1.0)>0.0001)
+		cerr << "You are using alpas-scaling, are you sure???? Check code! " << LINEINFO << endl;
 
 	///TODO! VÄLIAIKAINEN T.L. ANALYYSIIN
 	
-	const double c=1.5; 
-	const double mu0=2.5;
-	double scl = 1.26095;
+	if (alphas_freeze_c < 0.00001)  // sharp cutoff at maxalphas
+	{
+	    double scalefactor=0;
+		if (std::abs(scaling-1.0)>0.0001)   // Don't use stored value
+			scalefactor = scaling;
+		else
+			scalefactor = 4.0*Csqr;
+		
+		if (scalefactor/(rsqr*lambdaqcd*lambdaqcd) < 1.0) return maxalphas;
+		double alpha = 12.0*M_PI/( (33.0-2.0*Nf)*std::log(scalefactor/ (rsqr*lambdaqcd*lambdaqcd) ) );
+		if (alpha>maxalphas)
+			return maxalphas;
+		return alpha;
+	}
+
+	// Smooth cutoff
 	return 4.0*M_PI / ( 9.0 * std::log(
-		std::pow( std::pow(mu0, 2.0/c) + std::pow(scl/rsqr, 1.0/c), c)	// rsqr = r^2*lambdaqcd^2, dimensioton
+		std::pow( std::pow(alphas_mu0, 2.0/alphas_freeze_c) + std::pow(4.0*Csqr/(rsqr*lambdaqcd*lambdaqcd), 1.0/alphas_freeze_c), alphas_freeze_c)	
 		) );
 		
 /*		
@@ -145,16 +163,7 @@ REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
        //double musqr = 4.0/rsqr + 1.1699999;
        //double ipsatalphas= 12.0*M_PI/( (33.0-2.0*Nf)*std::log(musqr/(lambdaqcd*lambdaqcd) ));
        
-    REAL scalefactor=0;
-    if (std::abs(scaling-1.0)>0.0001)   // Don't use stored value
-        scalefactor = scaling;
-    else
-        scalefactor = 4.0*Csqr;
-    
-    if (scalefactor/(rsqr*lambdaqcd*lambdaqcd) < 1.0) return maxalphas;
-    REAL alpha = 12.0*M_PI/( (33.0-2.0*Nf)*std::log(scalefactor/ (rsqr*lambdaqcd*lambdaqcd) ) );
-    if (alpha>maxalphas)
-        return maxalphas;
+
     
     return alpha;
 */
@@ -163,14 +172,17 @@ REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
 std::string AmplitudeR::Alpha_s_str()
 {
 	std::stringstream ss;
-	ss << "\\alpha_s = 12 \\pi / [ (33.0 - 2.0*2Nf) * log(4.0*C^2/(r^2*lambdaqcd^2) ], C^2=" << Csqr << ", lambdaqcd=" << lambdaqcd << " GeV, Nf=" << Nf;
+	if (alphas_freeze_c < 0.0001)
+		ss << "\\alpha_s = 12 \\pi / [ (33.0 - 2.0*Nf) * log(4.0*C^2/(r^2*lambdaqcd^2) ], C^2=" << Csqr << ", lambdaqcd=" << lambdaqcd << " GeV, maxalphas=" << maxalphas <<", Nf=" << Nf;
+	else
+		ss << "\\alpha_s = 12 \\pi / [ (33.0 - 2.0*Nf) * log[ ( mu0^(1/c) + (4C^2/(lambdaqcd^2*r^2))^(1/c) )^c) ] ], C^2=" << Csqr <<", lambdaqcd=" << lambdaqcd << " GeV, mu0=" << alphas_mu0 <<", Nf=" << Nf;
 	return ss.str();
 }
 
 
 int AmplitudeR::RPoints()
 {
-    return 500;
+    return 400;
 }
 
 int AmplitudeR::YPoints()
@@ -285,6 +297,16 @@ void AmplitudeR::SetAlphasScaling(REAL scaling)
 double AmplitudeR::GetAlphasScaling()
 {
 	return Csqr;
+}
+
+double AmplitudeR::GetAlphasFreeze()
+{
+	return alphas_freeze_c;
+}
+
+void AmplitudeR::SetAlphasFreeze(REAL c)
+{
+	alphas_freeze_c = c;
 }
 
 /*

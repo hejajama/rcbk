@@ -11,6 +11,8 @@
 #include <cmath>
 #include "ic.hpp"
 
+
+
 // AmplitudeR::Initialize() must be called before this class is used, but first
 // one needs to set up this (e.g. call SetInitialCondition etc).
 
@@ -65,6 +67,8 @@ public:
     double GetAlphasScaling();
     void SetLambdaQcd(double lambda);
     double GetLambdaQcd();	// in GeV
+    void SetAlphasFreeze(REAL c);
+    double GetAlphasFreeze();
 
 
     // amplitude[yind][rind][bind][thetaind]
@@ -82,6 +86,7 @@ private:
     // Parameters which may depend on the IC
     REAL Csqr;   // \alpha_s \sim 1/log(4 C^2/(r^2\lambdaqcd^2))
     REAL maxalphas;
+    REAL alphas_freeze_c;	// describes how smoothly alphas is cutoff at maxalphas, if =0, then sharp cutoff at maxalphas
     REAL minr;
     double lambdaqcd;
 };
