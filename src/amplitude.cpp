@@ -14,6 +14,7 @@
 
 using std::cout; using std::endl;
 
+
 AmplitudeR::AmplitudeR()
 {
     bdep=false;
@@ -182,7 +183,7 @@ std::string AmplitudeR::Alpha_s_str()
 
 int AmplitudeR::RPoints()
 {
-    return 400;
+    return RPOINTS;
 }
 
 int AmplitudeR::YPoints()
@@ -209,8 +210,7 @@ REAL AmplitudeR::MinR()
 
 REAL AmplitudeR::RMultiplier()
 {
-    //return 1.08;
-    double max = 50;
+    double max = MAXR;
     //if (max > initial_condition->MaxR())
 	//	max = 0.9999 * initial_condition->MaxR();
     return std::pow(max/MinR(), 1.0/(RPoints()-1));
@@ -218,6 +218,11 @@ REAL AmplitudeR::RMultiplier()
 
 REAL AmplitudeR::MaxR()
 {
+	// If we have already initialized everything, we can take 
+	// maxr from the table
+	
+	if (rvals.size()>0)
+		return rvals[rvals.size()-1];
     double max = MinR()*std::pow(RMultiplier(), RPoints()-1);
     //if (max > initial_condition->MaxR())
 	//	max = 0.9999 * initial_condition->MaxR();
@@ -281,6 +286,8 @@ std::vector<REAL>& AmplitudeR::ThetaVals()
 
 bool AmplitudeR::ImpactParameter()
 {
+	if (bdep)
+		cerr << "WTF, IMPACT PARAMETER DEPENDECE?????" << endl;
     return bdep;
 }
 

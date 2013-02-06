@@ -1,4 +1,4 @@
-CXXFLAGS = `gsl-config --cflags` -O3 -fopenmp -pedantic -I ../amplitudelib #-fopenmp# -I ./libbci-1.1.0/ 
+CXXFLAGS = `gsl-config --cflags` -O2 -fopenmp -pedantic -I ../amplitudelib #-fopenmp# -I ./libbci-1.1.0/ 
 LDFLAGS = `gsl-config --libs` -lm 
 
 include filelist.m
@@ -14,4 +14,4 @@ rbk: $(OBJECTS)
 
 clean:
 	rm -f $(OBJECTS) $(AMPLITUDELIBO)
-	rm -f bk	
+	rm -f rbk	

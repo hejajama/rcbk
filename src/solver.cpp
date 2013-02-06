@@ -13,6 +13,14 @@
 #include <gsl/gsl_sf_bessel.h>
 #include <cmath>
 
+
+/// Accuracy parameters
+const int THETAINTPOINTS = 200;
+const double THETAINTACCURACY = 0.005;
+const int RINTPOINTS = 200;
+const REAL RINTACCURACY = 0.005;
+const double DESOLVEACCURACY = 0.005; // orig 0.01, relative accuracy of de solver
+
 Solver::Solver(AmplitudeR* _N)
 {
     N=_N;
@@ -66,7 +74,7 @@ void Solver::Solve(REAL maxy)
     const gsl_odeiv_step_type * T = gsl_odeiv_step_rkf45; //2; //f45;
 
     gsl_odeiv_step * s    = gsl_odeiv_step_alloc (T, vecsize);
-    gsl_odeiv_control * c = gsl_odeiv_control_y_new (0.0, 0.01);    //abserr relerr
+    gsl_odeiv_control * c = gsl_odeiv_control_y_new (0.0, DESOLVEACCURACY);    //abserr relerr
     gsl_odeiv_evolve * e  = gsl_odeiv_evolve_alloc (vecsize);
     REAL h = step;  // Initial ODE solver step size
     
@@ -147,8 +155,8 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
                 // we don't have to evolve it at large r
                 if (rind>10 and !par->S->GetBfkl())
                 {
-                    if (amplitude[rind-2]>0.9999 and amplitude[rind-1]>0.9999
-                        and amplitude[rind]>0.9999)
+                    if (amplitude[rind-2]>0.99999 and amplitude[rind-1]>0.99999
+                        and amplitude[rind]>0.99999)
                     {
                         dydt[tmpind]=0;
                         /*#pragma omp critical
@@ -208,8 +216,6 @@ REAL Solver::RapidityDerivative(REAL y,
             REAL lnr01, REAL lnb01, REAL thetab, const REAL* data,
             Interpolator *interp)
 {
-    const int RINTPOINTS = 100;
-    const REAL RINTACCURACY = 0.01;
 
     if (lnr01 <= N->LogRVal(0)) lnr01*=0.999;
     else if (lnr01 >= N->LogRVal(N->RPoints()-1)) lnr01*=0.999;
@@ -260,8 +266,6 @@ REAL Inthelperf_rint(REAL lnr, void* p)
 {
     Inthelper_rthetaint* par = (Inthelper_rthetaint*)p;
 
-    const int THETAINTPOINTS = 200;
-    const REAL THETAINTACCURACY = 0.01;
 
     par->lnr02=lnr;
     //par->n02 = par->Solv->InterpolateN(lnr, 0, 0, par->data);

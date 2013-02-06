@@ -92,5 +92,8 @@ private:
 };
 
 const REAL MINLN_N = -999;
+/// Accuracy settings
+const double MAXR = 100; // orig: 50
+const int RPOINTS = 400; // orig 400
 
 #endif
