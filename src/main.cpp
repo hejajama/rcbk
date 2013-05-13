@@ -4,6 +4,7 @@
  */
 
 #include <tools/config.hpp>
+#include <tools/tools.hpp>   // StrToReal etc
 #include "amplitude.hpp"
 #include "solver.hpp"
 #include <iostream>
@@ -20,8 +21,7 @@
 #include "gbw.hpp"
 #include "ic_special.hpp"
 
-
-const std::string version = "v. 0.9b  2012-xx-xx";
+std::string version = "1.0";
 
 // We need global variables so that the signal handler works
 std::string output="output.dat";
@@ -182,7 +182,7 @@ int main(int argc, char* argv[])
     infostr << "#";
     for (int i=0; i<argc; i++)
         infostr << argv[i] << " ";
-    infostr << endl << "# BK equation solver " << version << endl;
+    infostr << endl << "# BK equation solver " << version << " (build " << __DATE__ << " " << __TIME__ << ")" << endl;
     infostr << "# Running coupling: ";
     if (rc==CONSTANT) infostr << "constant, alphabar=" << ALPHABAR_s;
     if (rc==PARENT) infostr << "parent dipole";

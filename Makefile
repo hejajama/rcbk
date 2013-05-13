@@ -1,5 +1,5 @@
-CXXFLAGS = `gsl-config --cflags` -g -Wall -pedantic -I ../amplitudelib #-fopenmp# -I ./libbci-1.1.0/ 
-LDFLAGS = `gsl-config --libs` -lm  
+CXXFLAGS = `gsl-config --cflags` -O2 -fopenmp -pedantic -I ../amplitudelib  
+LDFLAGS = `gsl-config --libs` -lm 
 
 include filelist.m
 
@@ -13,5 +13,5 @@ rbk: $(OBJECTS)
 	gcc $(CXXFLAGS) $< -c -o $@
 
 clean:
-	rm -f $(OBJECTS)
+	rm -f $(OBJECTS) $(AMPLITUDELIBO)
 	rm -f rbk	
