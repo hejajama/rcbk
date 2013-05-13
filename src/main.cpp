@@ -3,7 +3,6 @@
  * Heikki Mäntysaari <heikki.mantysaari@jyu.fi>, 2011-2013
  */
 
-#include <tools/tools.hpp>
 #include <tools/config.hpp>
 #include "amplitude.hpp"
 #include "solver.hpp"

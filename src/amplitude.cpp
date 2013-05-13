@@ -4,7 +4,6 @@
  */
 
 #include "amplitude.hpp"
-#include <tools/tools.hpp>
 #include <cmath>
 #include <iostream>
 #include <string>
@@ -137,7 +136,6 @@ REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
 	if (std::abs(scaling-1.0)>0.0001)
 		cerr << "You are using alpas-scaling, are you sure???? Check code! " << LINEINFO << endl;
 
-	///TODO! VÄLIAIKAINEN T.L. ANALYYSIIN
 	
 	if (alphas_freeze_c < 0.00001)  // sharp cutoff at maxalphas
 	{

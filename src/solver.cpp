@@ -1,10 +1,9 @@
 /*
  * BK equation solver
- * Heikki Mäntysaari <heikki.mantysaari@jyu.fi>, 2011
+ * Heikki Mäntysaari <heikki.mantysaari@jyu.fi>, 2011-2013
  */
 
 #include "solver.hpp"
-#include <tools/tools.hpp>
 #include <tools/interpolation.hpp>
 #include <gsl/gsl_integration.h>
 #include <gsl/gsl_spline.h>
@@ -285,9 +284,6 @@ REAL Inthelperf_rint(REAL lnr, void* p)
          par->alphas_r02 = par->N->Alpha_s_ic(std::exp(2.0*lnr));
     else
         par->alphas_r02=0;
-        
-        //par->alphas_r02 = Alpha_s_r(std::exp(2.0*lnr),
-         //   par->Solv->GetAlphasScaling());
 
 
     int status; REAL result, abserr;
