@@ -216,8 +216,8 @@ REAL Solver::RapidityDerivative(REAL y,
             Interpolator *interp)
 {
 
-    if (lnr01 <= N->LogRVal(0)) lnr01*=0.999;
-    else if (lnr01 >= N->LogRVal(N->RPoints()-1)) lnr01*=0.999;
+    //if (lnr01 <= N->LogRVal(0)) lnr01*=0.999;
+    //else if (lnr01 >= N->LogRVal(N->RPoints()-1)) lnr01*=0.999;
     
     // Integrate first over r, then over \theta
     Inthelper_rthetaint helper;
@@ -241,8 +241,8 @@ REAL Solver::RapidityDerivative(REAL y,
     gsl_integration_workspace *workspace 
      = gsl_integration_workspace_alloc(RINTPOINTS);
 
-    REAL minlnr = std::log( 1.000001*N->RVal(0) );
-    REAL maxlnr = std::log( 0.99999*N->RVal(N->RPoints()-1) );
+    REAL minlnr = std::log( 0.5*N->RVal(0) );
+    REAL maxlnr = std::log( 2.0*N->RVal(N->RPoints()-1) );
 
     int status; REAL result, abserr;
     status=gsl_integration_qag(&fun, minlnr,

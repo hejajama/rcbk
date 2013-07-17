@@ -8,7 +8,7 @@
 #define _BK_MV_SPECIAL_
 
 /*
- * MV and MV^\gamma initial conditions
+ * Special IC
  */
 
 #include <string>

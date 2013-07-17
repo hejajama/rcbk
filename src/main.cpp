@@ -21,7 +21,7 @@
 #include "gbw.hpp"
 #include "ic_special.hpp"
 
-std::string version = "1.0";
+std::string version = "1.01-dev";
 
 // We need global variables so that the signal handler works
 std::string output="output.dat";
