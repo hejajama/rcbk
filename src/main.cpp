@@ -44,6 +44,7 @@ int main(int argc, char* argv[])
     REAL minr = 1e-9;
     bool bfkl=false;
     double alphas_freeze_c = 0;	// sharp cutoff by default
+    bool ln_ec=false;
     
     if (argc>1)  if (string(argv[1])=="-help")
     {
@@ -55,6 +56,7 @@ int main(int argc, char* argv[])
         cout << "-ic [MV, GBW, FILE, SPECIAL] params, MV and GBW params: qsqr anomalous_dim x0 ec   [ec only for MV]" << endl;
         cout <<"                                      FILE params: filename x0" << endl;
         cout << "                                     SPECIAL: use hardcoded IC" << endl;
+        cout << "-ln_ec: the e_c parameter given for the mv model ic is log of e_c, not e_c" << endl;
         cout << "-alphas_scaling factor: scale \\lambdaQCD^2 by given factor" << endl;
         cout << "-ln_alphas_scaling factor: logarithm of the scaling factor" << endl;
         cout << "-alphas_freeze_c c: alphas freezing in infrared, c=0 is sharp cutoff at maxalphas" << endl;
@@ -171,11 +173,20 @@ int main(int argc, char* argv[])
             bfkl=true;
         else if (string(argv[i])=="-alphas_freeze_c")
 			alphas_freeze_c = StrToReal(argv[i+1]);
+        else if (string(argv[i])=="-ln_ec")
+        {
+            ln_ec = true;
+        }
         else if (string(argv[i]).substr(0,1)=="-")
         {
             cerr << "Unrecoginzed parameter " << argv[i] << endl;
             return -1;
         }
+    }
+
+    if (ln_ec)
+    {
+        ((MV*)(N->GetInitialCondition()))->SetE( std::exp( ((MV*)(N->GetInitialCondition()))->GetE()) );
     }
 
     N->SetMinR(minr);
@@ -202,7 +213,7 @@ int main(int argc, char* argv[])
         infostr << "# Scaling factor C^2 in alpha_s: " << N->GetAlphasScaling() << endl;
     
     infostr << "# Initial condition is " << N->GetInitialCondition()->GetString()
-		<< endl;
+		<< " N(r=" << N->RVal(N->RPoints()/2) << " 1/GeV) = " << N->Ntable(0, N->RPoints()/2) <<  endl;
     infostr << "# " <<  N->Alpha_s_str() << endl;
     if (s.GetBfkl()) infostr <<"# Solving BFKL equation ";
     else infostr << "# Solving BK equation "; 

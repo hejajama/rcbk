@@ -37,6 +37,11 @@ void MV::SetE(double ec_)
 	ec=ec_;
 }
 
+double MV::GetE()
+{
+    return ec;
+}
+
 std::string MV::GetString()
 {
 	std::stringstream ss;
