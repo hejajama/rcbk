@@ -56,6 +56,7 @@ int main(int argc, char* argv[])
         cout <<"                                      FILE params: filename x0" << endl;
         cout << "                                     SPECIAL: use hardcoded IC" << endl;
         cout << "-alphas_scaling factor: scale \\lambdaQCD^2 by given factor" << endl;
+        cout << "-ln_alphas_scaling factor: logarithm of the scaling factor" << endl;
         cout << "-alphas_freeze_c c: alphas freezing in infrared, c=0 is sharp cutoff at maxalphas" << endl;
         cout << "-ystep step: set rapidity step size" << endl;
         cout << "-bfkl: solve bfkl equation, no bk" << endl;
@@ -155,6 +156,8 @@ int main(int argc, char* argv[])
         }
         else if (string(argv[i])=="-alphas_scaling")
             alphas_scaling = StrToReal(argv[i+1]);
+        else if (string(argv[i])=="-ln_alphas_scaling")
+            alphas_scaling = std::exp(StrToReal(argv[i+1]));
         else if (string(argv[i])=="-ystep")
             dy = StrToReal(argv[i+1]);
         else if (string(argv[i])=="-minr")
