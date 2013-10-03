@@ -157,7 +157,12 @@ int main(int argc, char* argv[])
         else if (string(argv[i])=="-alphas_scaling")
             alphas_scaling = StrToReal(argv[i+1]);
         else if (string(argv[i])=="-ln_alphas_scaling")
+        {
             alphas_scaling = std::exp(StrToReal(argv[i+1]));
+            // ln_alphas_scaling could be negative (=> code recognises it as a
+            // cli parameter), so let's remove it...
+            argv[i+1]="";
+        }
         else if (string(argv[i])=="-ystep")
             dy = StrToReal(argv[i+1]);
         else if (string(argv[i])=="-minr")
