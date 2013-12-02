@@ -5,6 +5,7 @@
  */
 
 #include <tools/config.hpp>
+#include <tools/tools.hpp>
 #include "ic_datafile.hpp"
 #include <string>
 #include <sstream>

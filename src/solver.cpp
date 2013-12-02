@@ -469,65 +469,6 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
 REAL Solver::InterpolateN(REAL lnr, REAL lnb, REAL thetab, const REAL* data)
 {
     cerr << "Solver::InterpolateN called, why?" << endl;
-    // array format: ind = rind*BPoitns()*ThetaPoints()+bind*ThetaPoints()+Theta
-    if (lnr > N->MaxLnR()) lnr = N->MaxLnR()*0.999;
-    else if (lnr < N->MinLnR()) lnr = N->MinLnR()*0.999; 
-    int rind = FindIndex(lnr, N->LogRVals());
-    if (rind<0) rind=0;
-    int bind, thetaind;
-    if (N->ImpactParameter())
-    {
-        bind = FindIndex(lnb, N->LogBVals());
-        while (thetab<0) thetab += 2.0*M_PI;
-        while (thetab > 2.0*M_PI) thetab-=2.0*M_PI;
-        thetaind = FindIndex(thetab, N->ThetaVals());
-        if (bind<0) bind=0;
-        ///TODO: interpolate, exp
-        return data[rind*N->BPoints()*N->ThetaPoints()+bind*N->ThetaPoints()+thetaind];
-    }
-    else
-    {
-        thetaind=0; bind=0;
-        int size = N->RPoints();
-        int interpolation_start, interpolation_end;
-        if (rind - INTERPOLATION_POINTS/2 < 0)
-        {
-            interpolation_start=0; interpolation_end=INTERPOLATION_POINTS;
-        }
-        else if (rind + INTERPOLATION_POINTS/2 >= size)
-        {
-            interpolation_start = size-INTERPOLATION_POINTS/2-1;
-            interpolation_end = size-1;
-        }
-        else
-        {
-            interpolation_start = rind - INTERPOLATION_POINTS/2;
-            interpolation_end = rind + INTERPOLATION_POINTS/2;
-        }
-        int points = interpolation_end - interpolation_start + 1;
-        REAL *tmpnarray = new REAL[points];
-        REAL *tmprarray = new REAL[points];
-        for (int i=interpolation_start; i<=interpolation_end; i++)
-        {
-            tmpnarray[i-interpolation_start] = data[i];
-            tmprarray[i-interpolation_start] = N->RVal(i);
-        }
-        Interpolator interp(tmprarray, tmpnarray, points);
-        interp.Initialize();
-        REAL result = interp.Evaluate(std::exp(lnr));
-
-        if (result < -1e-3 or result>1.001)
-        {
-            cerr << "Interpolation result is " << result << ", lnr = "
-            << lnr << ". " << LINEINFO << endl;
-        }
-
-        delete[] tmpnarray;
-        delete[] tmprarray;
-
-        return result;
-        
-    }
 }
 
 
