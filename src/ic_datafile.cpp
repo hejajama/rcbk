@@ -41,6 +41,14 @@ int IC_datafile::LoadFile(std::string file)
     {
         string line;
         getline(f, line);
+        if (line.substr(0,3)=="###")
+        {
+            // Some parameter!
+            if (line.substr(3,15)=="alphas_scaling:")
+            {
+                alphas_scaling = StrToReal(line.substr(18, line.length()-18));
+            }
+        }
         if (line.substr(0, 1)=="#" or line.length() < 3)
 			continue;
 		std::stringstream ss(line);
@@ -67,6 +75,7 @@ int IC_datafile::LoadFile(std::string file)
 IC_datafile::IC_datafile()
 {
 	interpolator=NULL;
+    alphas_scaling=-1;
 }
 
 IC_datafile::~IC_datafile()
@@ -85,3 +94,9 @@ double IC_datafile::MaxR()
 {
 	return interpolator->MaxX();
 }
+
+double IC_datafile::GetAlphasScaling()
+{
+    return alphas_scaling;
+}
+

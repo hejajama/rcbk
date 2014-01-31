@@ -142,6 +142,9 @@ int main(int argc, char* argv[])
 				N->SetInitialCondition(tmpic);
 				minr = tmpic->MinR();
 				ic = tmpic;
+                double tmpscaling = tmpic->GetAlphasScaling();
+                if (tmpscaling > 0)
+                    alphas_scaling = tmpscaling;
 				
 			}
 			else if (string(argv[i+1])=="SPECIAL")

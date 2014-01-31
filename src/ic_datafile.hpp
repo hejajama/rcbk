@@ -16,6 +16,10 @@
 /*
  * Initial condition, where data is read from a given file
  * File syntax is: r x
+ * Lines starting with one # are comments
+ * Lines starting with three ### include parameters,
+ * supported parameters are:
+ * ###alphas_scaling:value   (Notice: not ln)
  */
 
 class IC_datafile : public InitialCondition
@@ -27,8 +31,10 @@ class IC_datafile : public InitialCondition
 		~IC_datafile();
 		double MinR();
 		double MaxR();
+        double GetAlphasScaling();
 	private:
 		Interpolator *interpolator;
+        double alphas_scaling;
 };
 
 #endif
