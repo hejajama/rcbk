@@ -3,6 +3,7 @@
 #include <string>
 #include <cmath>
 #include <tools/config.hpp>
+#include "config.hpp"
 
 double MV::DipoleAmplitude(double r, double b)
 {

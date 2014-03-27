@@ -8,6 +8,7 @@
 
 #include "amplitude.hpp"
 #include <tools/interpolation.hpp>
+#include "config.hpp"
 
 enum RunningCoupling
 {
@@ -53,6 +54,7 @@ class Solver
 };
 
 const int INTERPOLATION_POINTS = 6;
+
 
 const double ALPHABAR_s = 0.2;
 

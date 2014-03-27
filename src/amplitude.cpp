@@ -12,7 +12,9 @@
 #include <gsl/gsl_integration.h>
 
 using std::cout; using std::endl;
-
+// Heavy quark masses, m_c = 1.27 GeV; m_b=4.2 GeV
+/// TODO: Define somewhere else
+double heavyqmasses[2] = { 1.27, 4.2 } ;
 
 AmplitudeR::AmplitudeR()
 {
@@ -136,6 +138,48 @@ REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
 	if (std::abs(scaling-1.0)>0.0001)
 		cerr << "You are using alpas-scaling, are you sure???? Check code! " << LINEINFO << endl;
 
+    double lqcd=lambdaqcd;
+    double nf = Nf;
+    double b0 = 11.0 - 2.0/3.0*nf;
+
+    /* Varying n_f scheme (heavy quarks are included), compute effective Lambda_QCD
+     * (such that alphas(r) is continuous), see 1012.4408 sec. 2.2.
+     */
+     
+    if (alphas_flavours == HEAVYQ)
+    {
+        
+
+        double dipolescale = 4.0*Csqr / rsqr;
+
+        if (dipolescale < SQR(heavyqmasses[0]))
+            nf=3;
+        else if (dipolescale < SQR(heavyqmasses[1]))
+            nf=4;
+        else
+            nf = 5;
+
+        b0 = 11.0 - 2.0/3.0*nf;
+        // Now we compute "effective" Lambda by requiring that we get the experimental value for alpha_s
+        // at the Z0 mass, alphas(Z0)=0.1184, m(Z0)=91.1876
+        double a0=0.1184;
+        double mz = 91.1876;
+        double b5 = 11.0 - 2.0/3.0*5.0; // at Z mass all 5 flavors are active
+        double b4 = 11.0 - 2.0/3.0*4.0;
+        double b3 = 11.0 - 2.0/3.0*3.0;
+        double lambda5 = mz * std::exp(-2.0*M_PI / (a0 * b5) );
+        double lambda4 = std::pow( heavyqmasses[1], 1.0 - b5/b4) * std::pow(lambda5, b5/b4);
+        double lambda3 = std::pow( heavyqmasses[0], 1.0 - b4/b3) * std::pow(lambda4, b4/b3);
+
+        if (nf==5) lqcd=lambda5;
+        else if (nf==4) lqcd=lambda4;
+        else if (nf==3) lqcd=lambda3;
+        else
+            cerr << "WTF, nf=" << nf <<" at " << LINEINFO << endl;
+        
+    
+    }
+
 	
 	if (alphas_freeze_c < 0.00001)  // sharp cutoff at maxalphas
 	{
@@ -145,37 +189,39 @@ REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
 		else
 			scalefactor = 4.0*Csqr;
 		
-		if (scalefactor/(rsqr*lambdaqcd*lambdaqcd) < 1.0) return maxalphas;
-		double alpha = 12.0*M_PI/( (33.0-2.0*Nf)*std::log(scalefactor/ (rsqr*lambdaqcd*lambdaqcd) ) );
+		if (scalefactor/(rsqr*lqcd*lqcd) < 1.0) return maxalphas;
+		double alpha = 12.0*M_PI/( ( 3.0*b0 )*std::log(scalefactor/ (rsqr*lqcd*lqcd) ) );
 		if (alpha>maxalphas)
 			return maxalphas;
 		return alpha;
 	}
 
 	// Smooth cutoff
+    ///TODO: varying nf
+    if (alphas_flavours==HEAVYQ)
+        cerr << "Smooth cutoff alphas does not support (yet) heavy quarks " << LINEINFO << endl;
 	return 4.0*M_PI / ( 9.0 * std::log(
 		std::pow( std::pow(alphas_mu0, 2.0/alphas_freeze_c) + std::pow(4.0*Csqr/(rsqr*lambdaqcd*lambdaqcd), 1.0/alphas_freeze_c), alphas_freeze_c)	
 		) );
 		
-/*		
-       ///TODO: Väliaikainen: ipsat
-       //double musqr = 4.0/rsqr + 1.1699999;
-       //double ipsatalphas= 12.0*M_PI/( (33.0-2.0*Nf)*std::log(musqr/(lambdaqcd*lambdaqcd) ));
-       
 
-    
-    return alpha;
-*/
 }
 
 std::string AmplitudeR::Alpha_s_str()
 {
+
 	std::stringstream ss;
 	if (alphas_freeze_c < 0.0001)
-		ss << "\\alpha_s = 12 \\pi / [ (33.0 - 2.0*Nf) * log(4.0*C^2/(r^2*lambdaqcd^2) ], C^2=" << Csqr << ", lambdaqcd=" << lambdaqcd << " GeV, maxalphas=" << maxalphas <<", Nf=" << Nf;
+		ss << "\\alpha_s = 12 \\pi / [ (33.0 - 2.0*Nf) * log(4.0*C^2/(r^2*lambdaqcd^2) ], C^2=" << Csqr << ", lambdaqcd=" << lambdaqcd << " GeV, maxalphas=" << maxalphas;
 	else
-		ss << "\\alpha_s = 12 \\pi / [ (33.0 - 2.0*Nf) * log[ ( mu0^(1/c) + (4C^2/(lambdaqcd^2*r^2))^(1/c) )^c) ] ], C^2=" << Csqr <<", lambdaqcd=" << lambdaqcd << " GeV, mu0=" << alphas_mu0 <<", Nf=" << Nf;
-	return ss.str();
+		ss << "\\alpha_s = 12 \\pi / [ (33.0 - 2.0*Nf) * log[ ( mu0^(1/c) + (4C^2/(lambdaqcd^2*r^2))^(1/c) )^c) ] ], C^2=" << Csqr <<", lambdaqcd=" << lambdaqcd << " GeV, mu0=" << alphas_mu0;
+
+    if (alphas_flavours == LIGHTQ)
+        ss << " nf=" << Nf;
+    else
+        ss << " heavy quarks included, masses: m_c = " << heavyqmasses[0] << ", m_b = " << heavyqmasses[1];
+
+    return ss.str();
 }
 
 
@@ -209,8 +255,7 @@ REAL AmplitudeR::MinR()
 REAL AmplitudeR::RMultiplier()
 {
     double max = MAXR;
-    //if (max > initial_condition->MaxR())
-	//	max = 0.9999 * initial_condition->MaxR();
+
     return std::pow(max/MinR(), 1.0/(RPoints()-1));
 }
 
@@ -222,8 +267,7 @@ REAL AmplitudeR::MaxR()
 	if (rvals.size()>0)
 		return rvals[rvals.size()-1];
     double max = MinR()*std::pow(RMultiplier(), RPoints()-1);
-    //if (max > initial_condition->MaxR())
-	//	max = 0.9999 * initial_condition->MaxR();
+
 	return max;
 }
 
@@ -353,4 +397,14 @@ void AmplitudeR::SetLambdaQcd(double lambda)
 double AmplitudeR::GetLambdaQcd()
 {
 	return lambdaqcd;
+}
+
+void AmplitudeR::SetAlphasFlavours(AlphasFlavours f)
+{
+    alphas_flavours = f;
+}
+
+AlphasFlavours AmplitudeR::GetAlphasFlavours()
+{
+    return alphas_flavours;
 }

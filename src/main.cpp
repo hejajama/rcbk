@@ -15,6 +15,7 @@
 #include <iomanip>
 #include <csignal>
 
+#include "config.hpp"
 #include "ic.hpp"
 #include "mv.hpp"
 #include "ic_datafile.hpp"
@@ -45,6 +46,7 @@ int main(int argc, char* argv[])
     bool bfkl=false;
     double alphas_freeze_c = 0;	// sharp cutoff by default
     bool ln_ec=false;
+    bool heavyf=false;
     
     if (argc>1)  if (string(argv[1])=="-help")
     {
@@ -61,6 +63,7 @@ int main(int argc, char* argv[])
         cout << "-ln_alphas_scaling factor: logarithm of the scaling factor" << endl;
         cout << "-alphas_freeze_c c: alphas freezing in infrared, c=0 is sharp cutoff at maxalphas" << endl;
         cout << "-ystep step: set rapidity step size" << endl;
+        cout << "-heavyf: include also heavy falvours (c and b quarks) " << endl;
         cout << "-bfkl: solve bfkl equation, no bk" << endl;
         return 0;
     }
@@ -164,9 +167,6 @@ int main(int argc, char* argv[])
         else if (string(argv[i])=="-ln_alphas_scaling")
         {
             alphas_scaling = std::exp(StrToReal(argv[i+1]));
-            // ln_alphas_scaling could be negative (=> code recognises it as a
-            // cli parameter), so let's remove it...
-            argv[i+1]="";
         }
         else if (string(argv[i])=="-ystep")
             dy = StrToReal(argv[i+1]);
@@ -180,7 +180,10 @@ int main(int argc, char* argv[])
         {
             ln_ec = true;
         }
-        else if (string(argv[i]).substr(0,1)=="-")
+        else if (string(argv[i])=="-heavyf")
+            heavyf=true;
+        
+        else if (string(argv[i]).substr(0,1)=="-" and string(argv[i-1]) != "-ln_alphas_scaling") // ln_alphas_scaling could be negative
         {
             cerr << "Unrecoginzed parameter " << argv[i] << endl;
             return -1;
@@ -199,6 +202,8 @@ int main(int argc, char* argv[])
     s.SetRunningCoupling(rc);
     N->SetAlphasScaling(alphas_scaling);
     N->SetAlphasFreeze(alphas_freeze_c);
+    if (heavyf)
+        N->SetAlphasFlavours(HEAVYQ);
     s.SetDeltaY(dy);
 
     infostr << "#";
@@ -225,6 +230,7 @@ int main(int argc, char* argv[])
     << N->RPoints() << " multiplier " << N->RMultiplier() << endl;
     infostr << "# maxy " << maxy << " ystep " << dy << endl;
     cout << infostr.str() ;
+
 
     s.Solve(maxy);
 

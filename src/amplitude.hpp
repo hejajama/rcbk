@@ -10,11 +10,19 @@
 #include <vector>
 #include <cmath>
 #include "ic.hpp"
-
-
+#include "config.hpp"
 
 // AmplitudeR::Initialize() must be called before this class is used, but first
 // one needs to set up this (e.g. call SetInitialCondition etc).
+
+// Whether we have fixed number of flavours (nf=Nf=3 defined in config.hpp) or
+// we include heavy quarks and use the fact that number of active flavors is changing
+// see 1012.4408 Sec. 2.2
+enum AlphasFlavours
+{
+    LIGHTQ,
+    HEAVYQ    // Include also heavy flavours (c and b)
+};
 
 class AmplitudeR
 {
@@ -65,8 +73,14 @@ public:
     
     void SetAlphasScaling(REAL scaling);
     double GetAlphasScaling();
+
+    void SetAlphasFlavours(AlphasFlavours f);
+    AlphasFlavours GetAlphasFlavours();
+
+    // Lambda_QCD values in case of fixed number of flavors
     void SetLambdaQcd(double lambda);
     double GetLambdaQcd();	// in GeV
+    
     void SetAlphasFreeze(REAL c);
     double GetAlphasFreeze();
 
@@ -89,6 +103,8 @@ private:
     REAL alphas_freeze_c;	// describes how smoothly alphas is cutoff at maxalphas, if =0, then sharp cutoff at maxalphas
     REAL minr;
     double lambdaqcd;
+
+    AlphasFlavours alphas_flavours;
 };
 
 const REAL MINLN_N = -999;
