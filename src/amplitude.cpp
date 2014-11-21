@@ -140,7 +140,7 @@ REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
 
     double lqcd=lambdaqcd;
     double nf = Nf;
-    double b0 = 11.0 - 2.0/3.0*nf;
+    double b0 = 33.0/3.0 - 2.0/3.0*nf;
 
     /* Varying n_f scheme (heavy quarks are included), compute effective Lambda_QCD
      * (such that alphas(r) is continuous), see 1012.4408 sec. 2.2.
@@ -148,7 +148,7 @@ REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
      
     if (alphas_flavours == HEAVYQ)
     {
-        
+        cerr << "Check piis ja b0:t!! " << LINEINFO << endl;
 
         double dipolescale = 4.0*Csqr / rsqr;
 
@@ -159,7 +159,7 @@ REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
         else
             nf = 5;
 
-        b0 = 11.0 - 2.0/3.0*nf;
+        b0 = 11.0/3.0 - 2.0/3.0*nf;
         // Now we compute "effective" Lambda by requiring that we get the experimental value for alpha_s
         // at the Z0 mass, alphas(Z0)=0.1184, m(Z0)=91.1876
         double a0=0.1184;
@@ -190,7 +190,7 @@ REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
 			scalefactor = 4.0*Csqr;
 		
 		if (scalefactor/(rsqr*lqcd*lqcd) < 1.0) return maxalphas;
-		double alpha = 12.0*M_PI/( ( 3.0*b0 )*std::log(scalefactor/ (rsqr*lqcd*lqcd) ) );
+		double alpha = 4.0*M_PI/(  b0 * std::log(scalefactor/ (rsqr*lqcd*lqcd) ) );
 		if (alpha>maxalphas)
 			return maxalphas;
 		return alpha;
@@ -200,7 +200,7 @@ REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
     ///TODO: varying nf
     if (alphas_flavours==HEAVYQ)
         cerr << "Smooth cutoff alphas does not support (yet) heavy quarks " << LINEINFO << endl;
-	return 4.0*M_PI / ( 9.0 * std::log(
+	return 4.0*M_PI / ( b0 * std::log(
 		std::pow( std::pow(alphas_mu0, 2.0/alphas_freeze_c) + std::pow(4.0*Csqr/(rsqr*lambdaqcd*lambdaqcd), 1.0/alphas_freeze_c), alphas_freeze_c)	
 		) );
 		
