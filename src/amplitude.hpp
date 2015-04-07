@@ -84,6 +84,8 @@ public:
     void SetAlphasFreeze(REAL c);
     double GetAlphasFreeze();
 
+    void SetRPoints(int rp);
+
 
     // amplitude[yind][rind][bind][thetaind]
     std::vector < std::vector< std::vector< std::vector<REAL> > > > n;
@@ -103,6 +105,8 @@ private:
     REAL alphas_freeze_c;	// describes how smoothly alphas is cutoff at maxalphas, if =0, then sharp cutoff at maxalphas
     REAL minr;
     double lambdaqcd;
+    
+    int RPOINTS;
 
     AlphasFlavours alphas_flavours;
 };
@@ -110,6 +114,6 @@ private:
 const REAL MINLN_N = -999;
 /// Accuracy settings
 const double MAXR = 100; // orig: 50
-const int RPOINTS = 400; // orig 400
+
 
 #endif

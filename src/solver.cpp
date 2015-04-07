@@ -1,6 +1,6 @@
 /*
  * BK equation solver
- * Heikki Mäntysaari <heikki.mantysaari@jyu.fi>, 2011-2013
+ * Heikki Mäntysaari <heikki.mantysaari@jyu.fi>, 2011-2015
  */
 
 #include "solver.hpp"
@@ -14,17 +14,41 @@
 
 
 /// Accuracy parameters
-const int THETAINTPOINTS = 200;
+
+int THETAINTPOINTS = 200;
+double THETAINTACCURACY = 0.005;
+int RINTPOINTS = 200;
+REAL RINTACCURACY = 0.005;
+double DESOLVEACCURACY = 0.005; // orig 0.01, relative accuracy of de solver
+double DESOLVERABSACCURACY = 0;
+
+
+/*
+const int THETAINTPOINTS = 10;
 const double THETAINTACCURACY = 0.005;
-const int RINTPOINTS = 200;
+const int RINTPOINTS = 40;
 const REAL RINTACCURACY = 0.005;
 const double DESOLVEACCURACY = 0.005; // orig 0.01, relative accuracy of de solver
+const double DESOLVERABSACCURACY = 0.00000001;
+*/
 
-Solver::Solver(AmplitudeR* _N)
+Solver::Solver(AmplitudeR* N_, bool fast_solver)
 {
-    N=_N;
+    N=N_;
     deltay=0.2;
     bfkl=false;
+
+    fast=fast_solver;
+    if (fast)
+    {
+        THETAINTPOINTS = 20;
+        THETAINTACCURACY = 0.01;
+        RINTPOINTS = 20;
+        RINTACCURACY = 0.01;
+        DESOLVERABSACCURACY = 0.0001;
+        DESOLVERABSACCURACY = 0.01;
+
+    }
 }
 
 /*
@@ -70,10 +94,15 @@ void Solver::Solve(REAL maxy)
     EvolutionHelperR help; help.N=N; help.S=this;
     gsl_odeiv_system sys = {EvolveR, NULL, vecsize, &help};
         
-    const gsl_odeiv_step_type * T = gsl_odeiv_step_rkf45; //2; //f45;
+    gsl_odeiv_step_type * T;
+    if (fast==false)
+        T = (gsl_odeiv_step_type *)gsl_odeiv_step_rkf45; //2; //f45;
+    else
+        T = (gsl_odeiv_step_type *)gsl_odeiv_step_rk2;
+    
 
     gsl_odeiv_step * s    = gsl_odeiv_step_alloc (T, vecsize);
-    gsl_odeiv_control * c = gsl_odeiv_control_y_new (0.0, DESOLVEACCURACY);    //abserr relerr
+    gsl_odeiv_control * c = gsl_odeiv_control_y_new (DESOLVERABSACCURACY, DESOLVEACCURACY);    //abserr relerr
     gsl_odeiv_evolve * e  = gsl_odeiv_evolve_alloc (vecsize);
     REAL h = step;  // Initial ODE solver step size
     

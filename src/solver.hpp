@@ -23,7 +23,7 @@ enum RunningCoupling
 class Solver
 {
     public:
-        Solver(AmplitudeR* N_);
+        Solver(AmplitudeR* N_, bool fast_solver=false);
         void Solve(REAL maxy);
 
         REAL RapidityDerivative(REAL y, REAL lnr01, REAL lnb01, REAL thetab,
@@ -48,6 +48,8 @@ class Solver
         RunningCoupling rc;
         REAL deltay;
         bool bfkl;
+
+        bool fast;  // true if fast / not so accurate solving parameters are used
 
         
 

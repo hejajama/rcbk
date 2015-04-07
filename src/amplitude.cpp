@@ -1,6 +1,6 @@
 /*
  * BK equation solver
- * Heikki Mäntysaari <heikki.mantysaari@jyu.fi>, 2011
+ * Heikki Mäntysaari <heikki.mantysaari@jyu.fi>, 2011-2015
  */
 
 #include "amplitude.hpp"
@@ -24,7 +24,13 @@ AmplitudeR::AmplitudeR()
     lambdaqcd=0.241;
 	maxalphas=0.7;
 	alphas_freeze_c = 0;
+    RPOINTS=400;
     
+}
+
+void AmplitudeR::SetRPoints(int rp)
+{
+    RPOINTS=rp;
 }
 
 void AmplitudeR::Initialize()
@@ -140,7 +146,7 @@ REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
 
     double lqcd=lambdaqcd;
     double nf = Nf;
-    double b0 = 33.0/3.0 - 2.0/3.0*nf;
+    double b0 = 11.0 - 2.0/3.0*nf;
 
     /* Varying n_f scheme (heavy quarks are included), compute effective Lambda_QCD
      * (such that alphas(r) is continuous), see 1012.4408 sec. 2.2.
@@ -148,7 +154,6 @@ REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
      
     if (alphas_flavours == HEAVYQ)
     {
-        cerr << "Check piis ja b0:t!! " << LINEINFO << endl;
 
         double dipolescale = 4.0*Csqr / rsqr;
 
@@ -159,7 +164,7 @@ REAL AmplitudeR::Alpha_s_ic(REAL rsqr, REAL scaling)
         else
             nf = 5;
 
-        b0 = 11.0/3.0 - 2.0/3.0*nf;
+        b0 = 11.0 - 2.0/3.0*nf;
         // Now we compute "effective" Lambda by requiring that we get the experimental value for alpha_s
         // at the Z0 mass, alphas(Z0)=0.1184, m(Z0)=91.1876
         double a0=0.1184;

@@ -47,6 +47,7 @@ int main(int argc, char* argv[])
     double alphas_freeze_c = 0;	// sharp cutoff by default
     bool ln_ec=false;
     bool heavyf=false;
+    bool fast=false;
     
     if (argc>1)  if (string(argv[1])=="-help")
     {
@@ -65,6 +66,7 @@ int main(int argc, char* argv[])
         cout << "-ystep step: set rapidity step size" << endl;
         cout << "-heavyf: include also heavy falvours (c and b quarks) " << endl;
         cout << "-bfkl: solve bfkl equation, no bk" << endl;
+        cout << "-fast: use fast (rough) solving parameters" << endl;
         return 0;
     }
 
@@ -182,7 +184,8 @@ int main(int argc, char* argv[])
         }
         else if (string(argv[i])=="-heavyf")
             heavyf=true;
-        
+        else if (string(argv[i])=="-fast")
+            fast=true;
         else if (string(argv[i]).substr(0,1)=="-" and string(argv[i-1]) != "-ln_alphas_scaling") // ln_alphas_scaling could be negative
         {
             cerr << "Unrecoginzed parameter " << argv[i] << endl;
@@ -196,8 +199,10 @@ int main(int argc, char* argv[])
     }
 
     N->SetMinR(minr);
+    if (fast)
+        N->SetRPoints(150);
     N->Initialize();
-    Solver s(N);
+    Solver s(N,fast);
     s.SetBfkl(bfkl);
     s.SetRunningCoupling(rc);
     N->SetAlphasScaling(alphas_scaling);
@@ -223,6 +228,8 @@ int main(int argc, char* argv[])
     infostr << "# Initial condition is " << N->GetInitialCondition()->GetString()
 		<< " N(r=" << N->RVal(N->RPoints()/2) << " 1/GeV) = " << N->Ntable(0, N->RPoints()/2) <<  endl;
     infostr << "# " <<  N->Alpha_s_str() << endl;
+    if (fast)
+    infostr <<"# Using fast (and not so accurate) parameters" << endl;
     if (s.GetBfkl()) infostr <<"# Solving BFKL equation ";
     else infostr << "# Solving BK equation "; 
     infostr << "up to y=" << maxy << endl;
