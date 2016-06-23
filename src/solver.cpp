@@ -197,17 +197,16 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
                 REAL tmplnr = par->N->LogRVal(rind);
                 REAL tmplnb = par->N->LogBVal(bind);
                 REAL tmptheta = par->N->ThetaVal(thetaind);
-                /*cout << "tmpind " << tmpind << " maxrind "
-                 << par->N->RPoints()-1 << " r=" << par->N->RVal(tmpind) <<
-                 " amplitude " << par->S->InterpolateN(tmplnr, 0, 0, amplitude) ;*/
+
+
                 dydt[tmpind] = par->S->RapidityDerivative(y, tmplnr, tmplnb, tmptheta,
-                    amplitude, &interp);
-                //cout << " reldydt " << dydt[tmpind]/par->S->InterpolateN(tmplnr, 0, 0, amplitude) << endl;
+                    amplitude, &interp);               
                 
             }
+        
         }
     }
-
+    
     delete[] tmprarray;
     delete[] tmpyarray;
     
@@ -405,16 +404,16 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
     {
         case CONSTANT:
             result = ALPHABAR_s/(2.0*M_PI)
-                    * SQR(r01) / ( SQR(r12) * SQR(r02) );
+                    * SQR(r01) / ( SQR(r12) * SQR(r02) + 1e-20);
             break;
         case PARENT:
             result = alphas_r01*Nc/(2.0*SQR(M_PI))
-                    * SQR(r01) / ( SQR(r12) * SQR(r02) );
+                    * SQR(r01) / ( SQR(r12) * SQR(r02) + 1e-20);
             break;
         case BALITSKY:
             result = Nc/(2.0*SQR(M_PI))*alphas_r01
             * (
-            SQR(r01) / ( SQR(r12) * SQR(r02) )
+            SQR(r01) / ( SQR(r12) * SQR(r02) + 1e-20)
             + 1.0/SQR(r02)*(alphas_r02/alphas_r12 - 1.0)
             + 1.0/SQR(r12)*(alphas_r12/alphas_r02 - 1.0)
             );
