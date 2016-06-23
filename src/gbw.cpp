@@ -4,6 +4,8 @@
 #include <cmath>
 #include <tools/config.hpp>
 
+using Amplitude::SQR;
+
 double GBW::DipoleAmplitude(double r, double b)
 {
 	if (b>1e-10)

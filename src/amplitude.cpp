@@ -16,6 +16,8 @@ using std::cout; using std::endl;
 /// TODO: Define somewhere else
 double heavyqmasses[2] = { 1.27, 4.2 } ;
 
+using Amplitude::SQR;
+
 AmplitudeR::AmplitudeR()
 {
     bdep=false;

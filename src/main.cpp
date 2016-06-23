@@ -1,6 +1,6 @@
 /*
  * BK equation solver
- * Heikki Mäntysaari <heikki.mantysaari@jyu.fi>, 2011-2013
+ * Heikki Mäntysaari <heikki.mantysaari@jyu.fi>, 2011-2016
  */
 
 #include <tools/config.hpp>
@@ -22,7 +22,7 @@
 #include "gbw.hpp"
 #include "ic_special.hpp"
 
-std::string version = "1.01-dev";
+std::string version = "20160623";
 
 // We need global variables so that the signal handler works
 std::string output="output.dat";
@@ -215,6 +215,7 @@ int main(int argc, char* argv[])
     for (int i=0; i<argc; i++)
         infostr << argv[i] << " ";
     infostr << endl << "# BK equation solver " << version << " (build " << __DATE__ << " " << __TIME__ << ")" << endl;
+	infostr << "# Heikki Mäntysaari <mantysaari@bnl.gov>, 2011-2016" << endl;
     infostr << "# Running coupling: ";
     if (rc==CONSTANT) infostr << "constant, alphabar=" << ALPHABAR_s;
     if (rc==PARENT) infostr << "parent dipole";

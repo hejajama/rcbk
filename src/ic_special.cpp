@@ -4,6 +4,7 @@
 #include <cmath>
 #include <tools/config.hpp>
 #include <tools/tools.hpp>
+using Amplitude::SQR;
 
 double IC_Special::DipoleAmplitude(double r, double b)
 {

@@ -5,6 +5,8 @@
 #include <tools/config.hpp>
 #include "config.hpp"
 
+using Amplitude::SQR;
+
 double MV::DipoleAmplitude(double r, double b)
 {
 	if (b>1e-10)

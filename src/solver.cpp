@@ -22,6 +22,7 @@ REAL RINTACCURACY = 0.005;
 double DESOLVEACCURACY = 0.005; // orig 0.01, relative accuracy of de solver
 double DESOLVERABSACCURACY = 0;
 
+using Amplitude::SQR;
 
 /*
 const int THETAINTPOINTS = 10;
