@@ -16,10 +16,10 @@
 /// Accuracy parameters
 
 int THETAINTPOINTS = 200;
-double THETAINTACCURACY = 0.005;
+double THETAINTACCURACY = 0.00000001;
 int RINTPOINTS = 200;
-REAL RINTACCURACY = 0.005;
-double DESOLVEACCURACY = 0.005; // orig 0.01, relative accuracy of de solver
+REAL RINTACCURACY = 0.00000001;
+double DESOLVEACCURACY = 0.00000001; // orig 0.01, relative accuracy of de solver
 double DESOLVERABSACCURACY = 0;
 
 using Amplitude::SQR;
@@ -163,15 +163,16 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
         tmprarray[i] = par->N->RVal(i);
         tmpyarray[i] = amplitude[i];
     }
-    Interpolator interp(tmprarray, tmpyarray, par->N->RPoints());
+        
+    #pragma omp parallel for schedule(dynamic, 15) // firstprivate(interp) 
+    for (int rind=0; rind < par->N->RPoints(); rind++)
+    {
+	Interpolator interp(tmprarray, tmpyarray, par->N->RPoints());
     interp.Initialize();
     interp.SetFreeze(true);
     interp.SetUnderflow(0);
     interp.SetOverflow(1.0);
-    
-    #pragma omp parallel for schedule(dynamic, 15) // firstprivate(interp) 
-    for (int rind=0; rind < par->N->RPoints(); rind++)
-    {
+
         for (int thetaind=0; thetaind < par->N->ThetaPoints(); thetaind++)
         {
             for (int bind=0; bind < par->N->BPoints(); bind++)
@@ -184,8 +185,9 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
                 // we don't have to evolve it at large r
                 if (rind>10 and !par->S->GetBfkl())
                 {
-                    if (amplitude[rind-2]>0.99999 and amplitude[rind-1]>0.99999
-                        and amplitude[rind]>0.99999)
+                    //if (amplitude[rind-2]>0.99999 and amplitude[rind-1]>0.99999
+                    //    and amplitude[rind]>0.99999)
+					if (amplitude[rind]==1)
                     {
                         dydt[tmpind]=0;
                         /*#pragma omp critical
@@ -405,19 +407,23 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
     {
         case CONSTANT:
             result = ALPHABAR_s/(2.0*M_PI)
-                    * SQR(r01) / ( SQR(r12) * SQR(r02) + 1e-20);
+                    * SQR(r01) / ( SQR(r12) * SQR(r02) );
+			if (isnan(result) or isinf(result)) return 0;
+			else return result;
             break;
         case PARENT:
             result = alphas_r01*Nc/(2.0*SQR(M_PI))
-                    * SQR(r01) / ( SQR(r12) * SQR(r02) + 1e-20);
+                    * SQR(r01) / ( SQR(r12) * SQR(r02) );
             break;
         case BALITSKY:
             result = Nc/(2.0*SQR(M_PI))*alphas_r01
             * (
-            SQR(r01) / ( SQR(r12) * SQR(r02) + 1e-20)
+            SQR(r01) / ( SQR(r12) * SQR(r02) )
             + 1.0/SQR(r02)*(alphas_r02/alphas_r12 - 1.0)
             + 1.0/SQR(r12)*(alphas_r12/alphas_r02 - 1.0)
             );
+			if (isnan(result) or isinf(result)) return 0;
+			else return result;
 			return result;
             break;
         case JIMWLK_SQRTALPHA:  // Similar than BALITSKY, slightly simpler (TL&HM JIMWLK paper)

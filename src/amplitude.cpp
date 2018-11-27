@@ -26,7 +26,7 @@ AmplitudeR::AmplitudeR()
     lambdaqcd=0.241;
 	maxalphas=0.7;
 	alphas_freeze_c = 0;
-    RPOINTS=400;
+    RPOINTS=3000;
     
 }
 

@@ -58,7 +58,7 @@ class Solver
 const int INTERPOLATION_POINTS = 6;
 
 
-//const double ALPHABAR_s = 0.1909859; // alpha_s=0.2
-const double ALPHABAR_s = 0.2072197;
+const double ALPHABAR_s = 0.1909859; // alpha_s=0.2
+//const double ALPHABAR_s = 0.2072197;
 
 #endif
