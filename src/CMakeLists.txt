@@ -21,7 +21,6 @@ include_directories(.)
 target_link_libraries(
 	rcbk
 	PRIVATE
-	amplitude
 	GSL::gsl
 	GSL::gslcblas
 )

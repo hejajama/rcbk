@@ -23,11 +23,6 @@ git_local_changes(GIT_LOCAL_CHANGES)
 
 find_package(GSL REQUIRED)
 
-# Headers and libraries for AmplitudeLib v2
-# and Minuit and Cuba (if not available on system)
-link_directories("../amplitudelib_v2/build/lib/")
-include_directories("../amplitudelib_v2/")
-
 add_subdirectory(src)
 
 set_target_properties(rcbk PROPERTIES

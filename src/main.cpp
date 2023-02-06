@@ -3,7 +3,6 @@
  * Heikki Mäntysaari <heikki.mantysaari@jyu.fi>, 2011-2016
  */
 
-#include "tools.hpp"   // StrToReal etc
 #include "amplitude.hpp"
 #include "solver.hpp"
 #include <iostream>
