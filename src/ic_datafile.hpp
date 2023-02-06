@@ -8,10 +8,10 @@
 #define _BK_IC_DATAFILE_
 
 #include <string>
-#include <tools/config.hpp>
 #include <string>
-#include <tools/interpolation.hpp>
+#include "interpolation.hpp"
 #include "ic.hpp"
+#include "config.hpp"
 
 /*
  * Initial condition, where data is read from a given file

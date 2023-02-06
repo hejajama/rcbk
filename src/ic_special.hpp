@@ -12,7 +12,6 @@
  */
 
 #include <string>
-#include <tools/config.hpp>
 #include "ic.hpp"
 #include "amplitude.hpp"
 

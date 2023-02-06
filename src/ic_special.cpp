@@ -2,12 +2,11 @@
 #include <sstream>
 #include <string>
 #include <cmath>
-#include <tools/config.hpp>
-#include <tools/tools.hpp>
-using Amplitude::SQR;
+
 
 double IC_Special::DipoleAmplitude(double r, double b)
 {
+    /*
 	double qs0sqr = 0.165; double anomalous_dimension = 1.135; 
 	double lambdaqcd = 0.241;
 	double sigma0 = 32.895 * 2.568; // in GeV
@@ -22,6 +21,7 @@ double IC_Special::DipoleAmplitude(double r, double b)
 	double s = A/2.0 * T_A(11.57, 208) * sigma0 * proton_n;
 	if (s<1e-5) return s;
 	else return 1.0-std::exp(-s);
+     */
 	
 	// Quadratic action
 	/*double Qsqr = 0.168; double lambdaqcd = 0.241;

@@ -2,9 +2,11 @@
 #include <sstream>
 #include <string>
 #include <cmath>
-#include <tools/config.hpp>
+#include <iostream>
 
-using Amplitude::SQR;
+inline double SQR(double x){ return x*x; }
+
+using namespace std;
 
 double GBW::DipoleAmplitude(double r, double b)
 {

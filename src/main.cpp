@@ -3,8 +3,7 @@
  * Heikki Mäntysaari <heikki.mantysaari@jyu.fi>, 2011-2016
  */
 
-#include <tools/config.hpp>
-#include <tools/tools.hpp>   // StrToReal etc
+#include "tools.hpp"   // StrToReal etc
 #include "amplitude.hpp"
 #include "solver.hpp"
 #include <iostream>
@@ -22,7 +21,15 @@
 #include "gbw.hpp"
 #include "ic_special.hpp"
 
+int errors;
+void ErrHandler(const char * reason,
+                        const char * file,
+                        int line,
+                int gsl_errno);
+
 std::string version = "20160623";
+
+using namespace std;
 
 // We need global variables so that the signal handler works
 std::string output="output.dat";
@@ -295,4 +302,30 @@ void SigIntHandler(int param)
     delete N;
 
     exit(1);
+}
+
+
+void ErrHandler(const char * reason,
+                        const char * file,
+                        int line,
+                        int gsl_errno)
+{
+   
+    // Errors related to convergence of integrals are handled when
+    // gsl_integration functions are called, don't do anything with them here
+    // 14 = failed to reach tolerance
+    // 18 = roundoff error prevents tolerance from being achieved
+    // 11 = maximum number of subdivisions reached
+    if (gsl_errno == 14 or gsl_errno == 18 or gsl_errno == 11)
+        return;
+
+    // 15: underflows
+    if (gsl_errno == 15 ) return;
+    // 16: overflows
+    if (gsl_errno == 16 ) return;
+
+
+    errors++;
+    std::cerr << file << ":"<< line <<": Error " << errors << ": " <<reason
+            << " (code " << gsl_errno << ")." << std::endl;
 }

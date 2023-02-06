@@ -4,7 +4,7 @@
  */
 
 #include "solver.hpp"
-#include <tools/interpolation.hpp>
+#include "interpolation.hpp"
 #include <gsl/gsl_integration.h>
 #include <gsl/gsl_spline.h>
 #include <gsl/gsl_errno.h>
@@ -12,6 +12,7 @@
 #include <gsl/gsl_sf_bessel.h>
 #include <cmath>
 
+inline double SQR(double x) { return x*x; }
 
 /// Accuracy parameters
 
@@ -22,7 +23,6 @@ REAL RINTACCURACY = 0.00000001;
 double DESOLVEACCURACY = 0.00000001; // orig 0.01, relative accuracy of de solver
 double DESOLVERABSACCURACY = 0;
 
-using Amplitude::SQR;
 
 /*
 const int THETAINTPOINTS = 10;

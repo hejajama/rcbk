@@ -7,7 +7,7 @@
 #define _SOLVER_H
 
 #include "amplitude.hpp"
-#include <tools/interpolation.hpp>
+#include "interpolation.hpp"
 #include "config.hpp"
 
 enum RunningCoupling

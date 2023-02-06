@@ -1,11 +1,13 @@
 #include "mv.hpp"
 #include <sstream>
 #include <string>
+#include <iostream>
 #include <cmath>
-#include <tools/config.hpp>
 #include "config.hpp"
 
-using Amplitude::SQR;
+using namespace std;
+
+inline double SQR(double x){ return x*x; }
 
 double MV::DipoleAmplitude(double r, double b)
 {

@@ -4,13 +4,14 @@
  * Heikki Mäntysaari <heikki.mantysaari@jyu.fi>, 2012
  */
 
-#include <tools/config.hpp>
-#include <tools/tools.hpp>
+
 #include "ic_datafile.hpp"
 #include <string>
 #include <sstream>
 #include <fstream>
 #include <vector>
+
+using namespace std;
 
 double IC_datafile::DipoleAmplitude(double r, double b)
 {

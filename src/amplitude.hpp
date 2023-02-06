@@ -6,7 +6,6 @@
 #ifndef _RAMPLITUDE_H
 #define _RAMPLITUDE_H
 
-#include <tools/config.hpp>
 #include <vector>
 #include <cmath>
 #include "ic.hpp"

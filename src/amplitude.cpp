@@ -11,12 +11,12 @@
 #include <gsl/gsl_sf_bessel.h>
 #include <gsl/gsl_integration.h>
 
-using std::cout; using std::endl;
+using std::cout; using std::endl; using std::cerr;
 // Heavy quark masses, m_c = 1.27 GeV; m_b=4.2 GeV
 /// TODO: Define somewhere else
 double heavyqmasses[2] = { 1.27, 4.2 } ;
 
-using Amplitude::SQR;
+inline double SQR(double x) { return x*x; }
 
 AmplitudeR::AmplitudeR()
 {

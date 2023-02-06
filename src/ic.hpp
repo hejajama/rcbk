@@ -8,7 +8,6 @@
 #define _BK_IC_
 
 #include <string>
-#include <tools/config.hpp>
 
 /*
  * Initial condition class, all other ic's are derived from this
