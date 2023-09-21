@@ -54,6 +54,7 @@ int main(int argc, char* argv[])
     bool ln_ec=false;
     bool heavyf=false;
     bool fast=false;
+
     
     if (argc>1)  if (string(argv[1])=="-help")
     {
@@ -92,7 +93,10 @@ int main(int argc, char* argv[])
         else if (string(argv[i])=="-rc")
         {
             if (string(argv[i+1])=="CONSTANT")
+            {
                 rc = CONSTANT;
+                ALPHABAR_s  = StrToReal(argv[i+2])*3/M_PI;
+            }
             else if (string(argv[i+1])=="PARENT")
                 rc = PARENT;
             else if (string(argv[i+1])=="BALITSKY")

@@ -23,6 +23,8 @@ REAL RINTACCURACY = 0.00000001;
 double DESOLVEACCURACY = 0.00000001; // orig 0.01, relative accuracy of de solver
 double DESOLVERABSACCURACY = 0;
 
+double ALPHABAR_s = 0.17*3./M_PI; // alpha_s*Nc/pi
+
 
 /*
 const int THETAINTPOINTS = 10;
@@ -163,7 +165,8 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
         tmprarray[i] = par->N->RVal(i);
         tmpyarray[i] = amplitude[i];
     }
-        
+    
+    
     #pragma omp parallel for schedule(dynamic, 15) // firstprivate(interp) 
     for (int rind=0; rind < par->N->RPoints(); rind++)
     {
@@ -171,7 +174,11 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
     interp.Initialize();
     interp.SetFreeze(true);
     interp.SetUnderflow(0);
-    interp.SetOverflow(1.0);
+        
+    if (!par->S->GetBfkl())
+        interp.SetOverflow(1.0);
+    else
+        interp.SetOverflow(0.0);
 
         for (int thetaind=0; thetaind < par->N->ThetaPoints(); thetaind++)
         {
@@ -353,7 +360,7 @@ REAL Inthelperf_thetaint(REAL theta, void* p)
 
         REAL n12=0;
         if (r12sqr < SQR(par->N->MinR())) n12=0;
-        else if (r12sqr > SQR(par->N->MaxR())) n12=1;
+        else if (r12sqr > SQR(par->N->MaxR()) and !par->Solv->GetBfkl()) n12=1;
         else n12 = par->interp->Evaluate(std::sqrt(r12sqr));
         //else n12=par->Solv->InterpolateN(0.5*std::log(r12sqr), 0, 0, par->data);
         REAL alphas_r12=0;
