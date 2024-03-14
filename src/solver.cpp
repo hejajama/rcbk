@@ -48,8 +48,7 @@ Solver::Solver(AmplitudeR* N_, bool fast_solver)
         THETAINTACCURACY = 0.01;
         RINTPOINTS = 20;
         RINTACCURACY = 0.01;
-        DESOLVERABSACCURACY = 0.0001;
-        DESOLVERABSACCURACY = 0.01;
+        DESOLVERABSACCURACY = 0.001;
 
     }
 }
@@ -187,24 +186,8 @@ int EvolveR(REAL y, const REAL amplitude[], REAL dydt[], void *params)
                 int tmpind = rind*par->N->BPoints()*par->N->ThetaPoints()
                     + bind*par->N->ThetaPoints()+thetaind;
 
-                ////THIS IS NOT TRUE IF THERE IS b-DEPENDENCE
-                // optimize: as we know that the amplitude saturates to N=1,
-                // we don't have to evolve it at large r
-                if (rind>10 and !par->S->GetBfkl())
-                {
-                    //if (amplitude[rind-2]>0.99999 and amplitude[rind-1]>0.99999
-                    //    and amplitude[rind]>0.99999)
-					if (amplitude[rind]==1)
-                    {
-                        dydt[tmpind]=0;
-                        /*#pragma omp critical
-                        {
-                            cout << "Skipping r=" << par->N->RVal(rind) << endl;
-                        }*/
-                        continue;
-                    }
-                }
                 REAL tmplnr = par->N->LogRVal(rind);
+
                 REAL tmplnb = par->N->LogBVal(bind);
                 REAL tmptheta = par->N->ThetaVal(thetaind);
 
