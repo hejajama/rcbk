@@ -94,7 +94,7 @@ void Solver::Solve(REAL maxy)
 
     // Intialize GSL
     EvolutionHelperR help; help.N=N; help.S=this;
-    gsl_odeiv_system sys = {EvolveR, NULL, vecsize, &help};
+    gsl_odeiv_system sys = {EvolveR, NULL, static_cast<size_t>(vecsize), &help};
         
     gsl_odeiv_step_type * T;
     if (fast==false)
@@ -494,6 +494,7 @@ REAL Solver::Kernel(REAL r01, REAL r02, REAL r12, REAL alphas_r01,
 REAL Solver::InterpolateN(REAL lnr, REAL lnb, REAL thetab, const REAL* data)
 {
     cerr << "Solver::InterpolateN called, why?" << endl;
+    exit(1);
 }
 
 

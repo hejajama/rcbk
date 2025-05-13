@@ -32,6 +32,7 @@ double IC_Special::DipoleAmplitude(double r, double b)
 	if (nr < 1e-5) return nr;
 	else return 1.0 - std::exp(-nr);
 	*/
+	return 0;
 }
 
 std::string IC_Special::GetString()
