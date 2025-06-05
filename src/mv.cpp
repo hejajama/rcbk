@@ -16,11 +16,12 @@ double MV::DipoleAmplitude(double r, double b)
 	const double e = 2.7182818;
     //NOTE: factor 1/4 "correctly", not as in AAMS paper
 
-    if (std::pow(SQR(r)*qs0sqr, anomalous_dimension) < 1e-7)
-	    return std::pow(SQR(r)*qs0sqr, anomalous_dimension)/4.0
+	double exponent = std::pow(SQR(r)*qs0sqr, anomalous_dimension)/4.0
             * std::log( 1.0/(r*lambdaqcd) + ec*e);
-    return 1.0 - std::exp(-std::pow(SQR(r)*qs0sqr, anomalous_dimension)/4.0
-			* std::log( 1.0/(r*lambdaqcd) + ec*e) );
+	if (exponent < 1e-12)
+		return exponent;
+	else
+		return 1.0 - std::exp(-exponent);
 }
 
 void MV::SetQsqr(double qsqr)
